@@ -180,6 +180,7 @@ textarea { min-height: 72px; resize: vertical; }
 .lbframe { border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; background: #F7F5EF; }
 .lbframe svg { display: block; width: 100%; height: auto; max-height: none; }
 .toast { display: flex; align-items: center; gap: 4px; max-width: calc(100% - 32px); position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--fg); color: var(--bg); padding: 8px 16px; border-radius: 999px; font-size: 13px; z-index: 30; }
+.how { color: var(--fg); opacity: .8; }
 .toast.top { bottom: auto; top: calc(14px + env(safe-area-inset-top, 0px)); }
 .othumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 .othumb { appearance: none; font: inherit; color: inherit; text-align: left; cursor: pointer; background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 6px; min-width: 0; content-visibility: auto; contain-intrinsic-size: auto 240px; }
@@ -983,7 +984,7 @@ function cleanState(raw) {
   const taken = new Set(); for (const o of outfits) { if (o.num && !taken.has(o.num)) taken.add(o.num); else o.num = 0; }
   let next = 1; for (const o of outfits) if (!o.num) { while (taken.has(next)) next++; o.num = next; taken.add(next); }
   const maxNum = Math.max(0, ...outfits.map(o => o.num));
-  return { palette, pieces, outfits, tagMode: r.tagMode === "weather" ? "weather" : "seasons", showLabels: r.showLabels !== false,
+  return { palette, pieces, outfits, tagMode: r.tagMode === "weather" ? "weather" : "seasons", showLabels: r.showLabels !== false, boldMix: r.boldMix === true,
     lookbookTitle: sStr(r.lookbookTitle, 40), styleId: typeof r.styleId === "string" && STYLE[r.styleId] ? r.styleId : "",
     updatedAt: Number.isFinite(r.updatedAt) ? r.updatedAt : 0, nextNum: Math.max(maxNum + 1, Number.isInteger(r.nextNum) ? r.nextNum : 1) };
 }
@@ -1119,17 +1120,17 @@ const STYLES = [
     desc: "Bookish and old-fashioned in a good way: tweed blazers, turtlenecks, pleated skirts, waistcoats, ties and satchels in brown, forest green, burgundy and cream. A softer take, sometimes called poetcore, adds big collars and capes.",
     start: "A turtleneck under a tweed blazer with trousers and loafers gets the look straight away.",
     palette: [["Cream", "#E9DDC3", "base"], ["Camel", "#B8875A", "base"], ["Chocolate", "#4E3527", "base"], ["Charcoal", "#3A3A3C", "base"], ["Black", "#1A1A1A", "base"], ["Forest green", "#2F4A3A", "accent"], ["Burgundy", "#6E2734", "accent"], ["Mustard", "#B58B2B", "accent"]],
-    pieces: [["turtle", "Charcoal", "turtleneck", { tex: "rib" }], ["poetblouse", "Cream", "poet blouse"], ["waistcoat", "Chocolate", "waistcoat", { tex: "tweed" }], ["blazer", "Camel", "tweed blazer", { tex: "tweed" }], ["pleated", "Forest green", "plaid skirt", { pat: { kind: "plaid", cols: ["Forest green", "Chocolate", "Mustard", "Cream"] } }], ["trousers", "Charcoal", "trousers"], ["coat", "Charcoal", "long coat"], ["loafers", "Black", "loafers", { tex: "leather" }], ["messenger", "Chocolate", "satchel", { tex: "leather" }], ["tie", "Burgundy", "tie"]] },
+    pieces: [["turtle", "Charcoal", "turtleneck", { tex: "rib" }], ["poetblouse", "Cream", "poet blouse"], ["waistcoat", "Chocolate", "waistcoat", { tex: "tweed" }], ["blazer", "Camel", "tweed blazer", { tex: "tweed" }], ["pleated", "Forest green", "plaid skirt", { pat: { kind: "plaid", cols: ["Forest green", "Chocolate", "Mustard", "Cream"] } }], ["trousers", "Charcoal", "trousers"], ["coat", "Charcoal", "long coat"], ["loafers", "Black", "loafers", { tex: "leather" }], ["messenger", "Chocolate", "satchel", { tex: "leather" }], ["tie", "Burgundy", "tie"], ["tights", "Charcoal", "tights"], ["socks", "Burgundy", "socks", { tex: "rib" }]] },
   { id: "goth", name: "Goth", group: "Dark and moody", aka: "Includes dark romantic and whimsigoth.",
     desc: "A subculture since the late 1970s: mostly black, with velvet, lace, leather, corsets, long coats, platform boots and silver jewelry. Romantic, Victorian and dramatic details all fit.",
     start: "Go all black and add one rich texture, like velvet or lace, plus heavy boots.",
     palette: [["Black", "#121212", "base"], ["Charcoal", "#2F2F33", "base"], ["Grey", "#8E8E92", "base"], ["Bone", "#E6E1D6", "base"], ["Oxblood", "#5A1420", "accent"], ["Plum", "#4B2A4F", "accent"], ["Silver", "#C0C3C7", "accent"]],
     pieces: [["corset", "Black", "corset top", { tex: "velvet" }], ["longtee", "Black", "mesh top", { tex: "mesh" }], ["poetblouse", "Bone", "poet blouse"], ["longdress", "Black", "velvet dress", { tex: "velvet" }], ["slipskirt", "Oxblood", "slip skirt", { tex: "satin" }], ["leather", "Black", "leather jacket", { tex: "leather" }], ["coat", "Charcoal", "long coat"], ["platforms", "Black", "platform boots", { tex: "leather" }], ["tights", "Black", "sheer tights", { tex: "mesh" }], ["necklace", "Silver", "necklace"]] },
   { id: "grunge", name: "Grunge and indie sleaze", group: "Dark and moody", aka: "90s grunge mixed with the late-2000s party look.",
-    desc: "Undone and rebellious: band tees, flannel, leather jackets, ripped or skinny jeans, slip dresses, beanies and combat boots, in black, denim and washed-out colors.",
+    desc: "Undone and rebellious: band tees, flannel, leather jackets, ripped baggy jeans (90s) or skinny ones (2000s), slip dresses, beanies and combat boots, in black, denim and washed-out colors.",
     start: "A band tee and a flannel shirt over jeans with boots is the whole idea.",
     palette: [["Black", "#151515", "base"], ["Charcoal", "#3A3A3C", "base"], ["Denim", "#4F6E96", "base"], ["Washed grey", "#A3A39E", "base"], ["Olive", "#5B6340", "base"], ["Oxblood", "#6E1F2A", "accent"], ["Red", "#B3262E", "accent"]],
-    pieces: [["graphictee", "Black", "band tee"], ["shacket", "Red", "flannel shirt", { pat: { kind: "plaid", cols: ["Oxblood", "Black", "Washed grey"] } }], ["leather", "Black", "leather jacket", { tex: "leather" }], ["jeans", "Denim", "skinny jeans", { fit: "Slim", tex: "denim" }], ["slipdress", "Black", "slip dress", { tex: "satin" }], ["mini", "Black", "mini skirt"], ["laceboots", "Black", "combat boots", { tex: "leather" }], ["beanie", "Charcoal", "beanie", { tex: "rib" }], ["tights", "Black", "tights"], ["crossbody", "Black", "crossbody bag"]] },
+    pieces: [["graphictee", "Black", "band tee"], ["shacket", "Red", "flannel shirt", { pat: { kind: "plaid", cols: ["Oxblood", "Black", "Washed grey"] } }], ["leather", "Black", "leather jacket", { tex: "leather" }], ["jeans", "Denim", "baggy ripped jeans", { fit: "Relaxed", tex: "denim" }], ["slipdress", "Black", "slip dress", { tex: "satin" }], ["mini", "Black", "mini skirt"], ["laceboots", "Black", "combat boots", { tex: "leather" }], ["beanie", "Charcoal", "beanie", { tex: "rib" }], ["tights", "Black", "tights"], ["crossbody", "Black", "crossbody bag"]] },
   { id: "street", name: "Streetwear", group: "Street and sport", aka: "Rooted in skate, hip-hop and sneaker culture.",
     desc: "Comfortable and oversized: graphic tees, hoodies, cargo pants, baggy jeans, bomber jackets, caps and statement sneakers. For many people this is simply everyday clothing now.",
     start: "An oversized hoodie, wide jeans or cargos and chunky sneakers.",
@@ -1408,6 +1409,28 @@ const NO_SOCKS = new Set(["sandals", "pumps", "mules"]);
 const SKIRTS = new Set(["aline", "pleated", "flowy", "mini", "pencil", "maxi", "wrapskirt", "slipskirt", "sarong"]);
 const SPORTY_FEET = new Set(["sneakers", "chunky", "slipons", "skate"]);
 const legsShow = items => items.some(p => CORE(p) === "Dresses" && !["jumpsuit", "overalls", "abaya"].includes(p.type) || SKIRTS.has(p.type) || ["shorts", "bermuda"].includes(p.type));
+/* shirts can also be worn open over a simple top, as a light layer */
+const OPEN_SHIRTS = new Set(["shirt", "shortshirt", "mandarin"]);
+const LAYER_BASES = new Set(["tee", "tank", "graphictee", "longtee", "henley", "croptop", "turtle"]);
+const canOpenLayer = p => CORE(p) === "Tops" && !TYPE[p.type].layer && (OPEN_SHIRTS.has(p.type) || p.wear === "Layered over another top");
+/* in an outfit with two plain tops, the second one is the open layer */
+function openLayerOf(items) { const t = items.filter(p => CORE(p) === "Tops" && !TYPE[p.type].layer); return t.length === 2 && LAYER_BASES.has(t[0].type) && canOpenLayer(t[1]) ? t[1] : null; }
+/* patterns in the same family (two checks, two stripes) fight each other; different families can mix */
+const PAT_FAMILY = { stripes: "stripe", pinstripe: "stripe", plaid: "check", gingham: "check", windowpane: "check", houndstooth: "check", herringbone: "check", dots: "dot", floral: "floral", image: "print" };
+function mixOK(items) {
+  const accents = new Set(items.flatMap(accentHexes)), pats = items.filter(isPattern);
+  if (!state.boldMix) return accents.size <= 1 && pats.length <= 1 && !(accents.size === 1 && pats.length === 1 && Math.random() < .5);
+  if (accents.size > 2 || pats.length > 2) return false;
+  if (pats.length === 2) {
+    if (accents.size || PAT_FAMILY[pats[0].fill.kind] === PAT_FAMILY[pats[1].fill.kind]) return false;
+    if (!colorsOf(pats[1]).some(h => colorsOf(pats[0]).some(g => sameFamily(g, h)))) return false;
+  }
+  if (accents.size === 2 && pats.length) return false;
+  return true;
+}
+/* two ideas count as the same outfit when the clothes match, even if the bag or jewelry differs */
+const clothesKey = (ids, anchor) => ids.map(id => state.pieces.find(p => p.id === id)).filter(p => p && (!["Bags", "Accessories"].includes(CORE(p)) || p === anchor)).map(p => p.id).sort().join("|");
+let shownIdeas = new Set(), shownFor = "";
 /* hard rules: combinations that don't work no matter what */
 function wearable(items, ctx) {
   const types = new Set(items.map(p => p.type));
@@ -1417,6 +1440,9 @@ function wearable(items, ctx) {
   const top = items.find(p => CORE(p) === "Tops" && !TYPE[p.type].layer);
   const layer = items.find(p => CORE(p) === "Tops" && TYPE[p.type].layer);
   if (layer && top && BULKY_TOPS.has(top.type)) return false;
+  const plainTops = items.filter(p => CORE(p) === "Tops" && !TYPE[p.type].layer);
+  if (plainTops.length > 2) return false;
+  if (plainTops.length === 2 && (layer || items.some(p => CORE(p) === "Dresses") || !LAYER_BASES.has(plainTops[0].type) || !canOpenLayer(plainTops[1]))) return false;
   const shoe = items.find(p => CORE(p) === "Shoes");
   if (types.has("socks") && (types.has("tights") || (shoe && NO_SOCKS.has(shoe.type)))) return false;
   if (types.has("tights") && (!legsShow(items) || ctx.warm)) return false;
@@ -1456,6 +1482,15 @@ function scoreIdea(items, ctx, used) {
   const hexes = new Map(); for (const p of items) for (const h of new Set(colorsOf(p))) hexes.set(h, (hexes.get(h) || 0) + 1);
   if ([...hexes.values()].some(v => v >= 2)) s += .4;
   if (items.length > 7) s -= (items.length - 7) * .5;
+  /* shoes that suit the trousers */
+  const bottom = items.find(p => CORE(p) === "Bottoms"), shoe = items.find(p => CORE(p) === "Shoes");
+  if (bottom && shoe) {
+    if (["wide", "balloon", "cargo", "drawstring"].includes(bottom.type) && ["chunky", "loafers", "chelsea", "laceboots", "platforms", "clogs", "ankleboots", "pumps", "skate"].includes(shoe.type)) s += .6;
+    if (["leggings", "trackpants"].includes(bottom.type) && ["loafers", "pumps", "ankleboots", "kneeboots", "maryjanes", "mules"].includes(shoe.type)) s -= 1.5;
+    if (["leggings", "trackpants"].includes(bottom.type) && ["sneakers", "chunky", "slipons", "skate"].includes(shoe.type)) s += .4;
+    if (["wide", "trousers", "jeans", "cargo", "balloon", "drawstring", "trackpants"].includes(bottom.type) && shoe.type === "kneeboots") s -= 1;
+  }
+  if (state.boldMix && (new Set(items.flatMap(accentHexes)).size === 2 || items.filter(isPattern).length === 2)) s += .5;
   return s;
 }
 function generate(n = 6) {
@@ -1480,7 +1515,11 @@ function generate(n = 6) {
   if (aSlot === "dress") { dresses = [A]; if (TYPE[A.type].layer && !tops.length) tops = by("Tops").filter(p => !TYPE[p.type].layer); }
   if (aSlot === "shoes") shoes = [A];
   const any = a => a[Math.floor(Math.random() * a.length)];
-  const seen = new Set([...state.outfits.map(o => keyOf(o.items)), ...ideas.map(o => keyOf(o.items))]);
+  /* skipped ideas are remembered until the filters change */
+  const sig = [tag, outOcc, comfyOnly, ownedOnly, A?.id || "", tagMode()].join("/");
+  if (sig !== shownFor) { shownIdeas = new Set(); shownFor = sig; }
+  const seen = new Set([...state.outfits.map(o => clothesKey(o.items, A)), ...ideas.map(o => clothesKey(o.items, A)), ...shownIdeas]);
+  const openShirts = softOcc(by("Tops").filter(canOpenLayer));
   const cold = tag === "Winter" || tag === "Cold", warm = tag === "Summer" || tag === "Hot", rainy = tag === "Rainy", ac = tag === "Chilly indoors";
   const dressy = outOcc === "Work" || outOcc === "Dressed up";
   const coldCoats = by("Outerwear").filter(o => TYPE[o.type].w >= 2);
@@ -1500,6 +1539,7 @@ function generate(n = 6) {
       if (TYPE[d.type].layer && tops.length) items.unshift(aSlot === "top" ? A : any(tops));
     } else { if (!tops.length || !bottoms.length) break; items.push(any(tops), any(bottoms)); }
     if (aSlot === "layer") items.push(A);
+    else if (!useDress && openShirts.length && LAYER_BASES.has(items[0].type) && Math.random() < .25) { const sh = any(openShirts.filter(x => x !== items[0])); if (sh) items.splice(1, 0, sh); }
     else if (!warm && layers.length && Math.random() < (ac ? 0.7 : cold ? 0.45 : 0.35)) { const l = any(layers); if (!items.includes(l)) items.push(l); }
     if (aSlot === "outer") items.push(A);
     else if (outers.length || (cold && coldCoats.length)) {
@@ -1525,11 +1565,9 @@ function generate(n = 6) {
       if (cold && tights.length && legsShow(items)) items.push(any(tights));
       else if (accs.length && Math.random() < 0.55) { const a = any(accs.filter(x => x.type !== "umbrella")); if (a) items.push(a); }
     }
-    const accents = new Set(items.flatMap(accentHexes));
-    const patterns = items.filter(isPattern).length;
-    if (accents.size > 1 || patterns > 1 || (accents.size === 1 && patterns === 1 && Math.random() < 0.5)) continue;
+    if (!mixOK(items)) continue;
     if (!wearable(items, ctx)) continue;
-    const k = keyOf(items.map(p => p.id));
+    const k = clothesKey(items.map(p => p.id), A);
     if (seen.has(k)) continue;
     seen.add(k);
     cands.push(items);
@@ -1540,6 +1578,7 @@ function generate(n = 6) {
     let best = 0, bestS = -Infinity;
     cands.forEach((c, i) => { const s = scoreIdea(c, ctx, used); if (s > bestS) { bestS = s; best = i; } });
     const items = cands.splice(best, 1)[0];
+    shownIdeas.add(clothesKey(items.map(p => p.id), A));
     for (const p of items) if (p !== A) used.set(p.id, (used.get(p.id) || 0) + 1);
     const o = { id: uidGen(), items: items.map(p => p.id), occasion: outOcc === "Any" ? "" : outOcc, comfy: comfyOnly };
     for (const m of ["seasons", "weather"]) o[m] = tag !== "Any" && m === tagMode() ? [tag] : commonTags(items, m);
@@ -1631,7 +1670,11 @@ const LABEL_HELP = {
   shape: "Pairing a fitted piece with a roomy one keeps the proportions balanced.",
   mix: "Pairing sporty and dressy pieces makes each feel less serious.",
   contrast: "Light against dark gives a crisp, graphic look.",
-  column: "Similar shades from top to bottom make one long, unbroken line."
+  column: "Similar shades from top to bottom make one long, unbroken line.",
+  relaxed: "Roomy on top and bottom is a deliberate look. Something neat keeps it intentional: a structured shoe, a cuffed hem or a half-tuck.",
+  block: "Two accent colors in separate pieces, with calm base colors around them. Bold, but balanced.",
+  patmix: "Two different kinds of pattern with a color in common. That shared color is what makes them work together.",
+  open: "A shirt worn open over a simple top adds a layer you can take off when it warms up."
 };
 /* two colors count as one family when they're close in hue, or both quiet neutrals of similar depth */
 function sameFamily(a, b) {
@@ -1649,7 +1692,8 @@ function outfitLabels(items) {
   const L = [];
   const accents = [...new Set(items.flatMap(accentHexes))];
   const pats = items.filter(isPattern);
-  if (accents.length) L.push({ k: "accent", t: `Accent: ${lc(nameOf(accents[0]))}` });
+  if (accents.length === 2) L.push({ k: "block", t: `Color block: ${lc(nameOf(accents[0]))} + ${lc(nameOf(accents[1]))}` });
+  else if (accents.length) L.push({ k: "accent", t: `Accent: ${lc(nameOf(accents[0]))}` });
   else if (!pats.length) {
     const names = [...new Set(wear.filter(p => p.fill?.kind === "solid").map(p => lc(nameOf(p.fill.colors[0]))))];
     const hexes = [...new Set(wear.filter(p => p.fill?.kind === "solid").map(p => p.fill.colors[0].toLowerCase()))];
@@ -1659,7 +1703,8 @@ function outfitLabels(items) {
     else if (names.length) L.push({ k: "base", t: "All base colors" });
   }
   const PAT_WORD = { stripes: "striped", pinstripe: "pinstriped", plaid: "plaid", gingham: "gingham", windowpane: "check", houndstooth: "houndstooth", dots: "polka-dot", floral: "floral", herringbone: "herringbone", image: "printed" };
-  if (pats.length) L.push({ k: "pattern", t: `Pattern: ${PAT_WORD[pats[0].fill.kind] || "patterned"} ${shortType(pats[0])}` });
+  if (pats.length === 2) L.push({ k: "patmix", t: `Pattern mix: ${PAT_WORD[pats[0].fill.kind] || "print"} + ${PAT_WORD[pats[1].fill.kind] || "print"}` });
+  else if (pats.length) L.push({ k: "pattern", t: `Pattern: ${PAT_WORD[pats[0].fill.kind] || "patterned"} ${shortType(pats[0])}` });
   /* a color that appears in two different pieces, including inside a pattern */
   const seen = new Map();
   for (const p of items) for (const h of new Set(colorsOf(p))) seen.set(h, [...(seen.get(h) || []), p]);
@@ -1671,6 +1716,8 @@ function outfitLabels(items) {
   const neatT = top && (["Fitted", "Cropped"].includes(top.fit) || (NEAT_TOPS.has(top.type) && top.fit !== "Oversized") || /ucked/.test(top.wear || "")), roomyT = top && (top.fit === "Oversized" || (ROOMY_TOPS.has(top.type) && !["Fitted", "Cropped"].includes(top.fit)));
   if (top && fullB && neatT) L.push({ k: "shape", t: "Shape: neat top, full bottom" });
   else if (top && slimB && roomyT) L.push({ k: "shape", t: "Shape: roomy top, slim bottom" });
+  else if (top && fullB && roomyT) L.push({ k: "relaxed", t: "Shape: relaxed all over" });
+  if (openLayerOf(items)) L.push({ k: "open", t: "Layer: open shirt" });
   if (items.some(p => SPORTY_FEET.has(p.type) || p.type === "cap") && items.some(p => DRESSY.has(p.type) && !["Shoes", "Bags", "Accessories"].includes(CORE(p)))) L.push({ k: "mix", t: "Sporty + dressy" });
   const up = (top || dress)?.fill?.kind === "solid" ? (top || dress).fill.colors[0] : null, down = bottom?.fill?.kind === "solid" ? bottom.fill.colors[0] : null;
   if (up && down && L.length < 4) { const d = Math.abs(luminance(up) - luminance(down)); if (d > .45) L.push({ k: "contrast", t: "High contrast" }); else if (d < .1 && up.toLowerCase() !== down.toLowerCase() && sameFamily(up, down) && L[0]?.k !== "tonal") L.push({ k: "column", t: "Tonal column" }); }
@@ -1726,6 +1773,17 @@ const anchorPiece = () => anchorId ? state.pieces.find(p => p.id === anchorId) |
 function anchorSlot(p) { const c = CORE(p); return c === "Tops" ? (TYPE[p.type].layer ? "layer" : "top") : c === "Bottoms" ? "bottom" : c === "Dresses" ? "dress" : c === "Outerwear" ? "outer" : c === "Shoes" ? "shoes" : c === "Bags" ? "bag" : "acc"; }
 
 function outfitTags(o, items) { const arr = Array.isArray(o[tagMode()]) ? o[tagMode()] : commonTags(items); return arr.length === TAGS().length ? [allTagsLabel()] : arr.length ? arr : [tagMode() === "weather" ? "Mixed weather" : "Mixed seasons"]; }
+/* how a piece is worn in this outfit, from its fit, wear and hem settings */
+function howWorn(p, items) {
+  const parts = [];
+  if (p.fit && p.fit !== "Regular") parts.push(lc(p.fit));
+  const open = openLayerOf(items) === p;
+  if (open) parts.push(CORE(p) === "Tops" ? "worn open" : "");
+  else if (p.wear && p.wear !== "Layered over another top") parts.push(lc(p.wear));
+  if (p.hem) parts.push(lc(p.hem));
+  /* skip what the name already says, like "oversized" on an "Oversized blazer" */
+  return parts.filter(x => x && !p.name.toLowerCase().includes(x)).join(", ");
+}
 function outfitCard(o, idea, inSheet) {
   const items = o.items.map(id => state.pieces.find(p => p.id === id)).filter(Boolean);
   const idx = o.num;
@@ -1736,7 +1794,7 @@ function outfitCard(o, idea, inSheet) {
       ${idea ? `<div class="row"><button class="btn quiet" data-skip="${o.id}">Skip</button><button class="btn primary" data-keep="${o.id}">Save</button></div>` : (inSheet ? `<button class="btn quiet" data-act="close-sheet-btn">Close</button>` : `<button class="btn quiet" data-del-outfit="${o.id}" aria-label="Delete outfit ${idx}">Delete</button>`)}</div>
     ${lookHTML(items)}
     ${labelsHTML(items)}
-    <p class="small muted">${items.map(p => esc(p.name) + (owned(p) ? "" : " (wishlist)")).join(" · ")}</p>
+    <p class="small muted">${items.map(p => { const h = howWorn(p, items); return esc(p.name) + (h ? ` <span class="how">(${esc(h)})</span>` : "") + (owned(p) ? "" : " (wishlist)"); }).join(" · ")}</p>
     ${wishN ? `<div class="badge">Needs ${wishN} wishlist piece${wishN === 1 ? "" : "s"}</div>` : ""}
     ${!idea && o.note ? `<p class="note">${esc(o.note)}</p>` : ""}
     ${!idea ? `<div class="row"><div class="row"><button class="btn quiet" data-edit-outfit="${o.id}">Edit outfit</button><button class="btn quiet" data-note="${o.id}">${o.note ? "Edit note" : "Add a styling note"}</button></div>${inSheet ? `<button class="btn danger" data-del-outfit="${o.id}" aria-label="Delete outfit ${idx}">Delete</button>` : ""}</div>` : ""}
@@ -1770,7 +1828,7 @@ function renderOutfits() {
     : `<div class="empty"><p>Add a few pieces first.</p><p class="small">Ideas need at least a top and a bottom (or a dress) and a pair of shoes. A starter set on the Pieces tab gets you there in one tap.</p><button class="btn" data-goto="pieces">Go to pieces</button></div>`}
   </section>
   <section class="block">
-    <div class="row" style="justify-content:space-between"><h2>Saved outfits <span class="small muted">${A ? saved.length + " with this piece" : state.outfits.length}</span></h2>${state.outfits.length ? `<div class="row"><button class="btn" data-act="lookbook">Lookbook</button><button class="btn" data-act="new-outfit">Make one myself</button></div>` : ""}</div>
+    <div class="row" style="justify-content:space-between"><h2>Saved outfits${A ? ` <span class="small muted">${saved.length} with this piece</span>` : state.outfits.length ? ` <span class="small muted">${state.outfits.length}</span>` : ""}</h2>${state.outfits.length ? `<div class="row"><button class="btn" data-act="lookbook">Lookbook</button><button class="btn" data-act="new-outfit">Make one myself</button></div>` : ""}</div>
     ${state.outfits.length ? `<div class="chips">${filters.map(s => `<button class="chip" data-ofilter="${s}" aria-pressed="${s === outFilter}">${s}</button>`).join("")}</div>
       ${saved.length ? `<div class="othumbs">${saved.slice().reverse().slice(0, outLimit).map(outfitThumb).join("")}</div>${saved.length > outLimit ? `<div class="more"><button class="btn" data-act="more-outfits">Show more (${saved.length - outLimit} left)</button></div>` : ""}` : `<p class="small muted">${A ? "No saved outfits use this piece yet. Save an idea above." : "No saved outfits match this filter."}</p>`}`
     : `<div class="empty"><p>No saved outfits yet.</p><p class="small">Save the ideas you like, or put an outfit together yourself.</p></div>`}
@@ -1811,6 +1869,7 @@ function openSettings() {
     <div class="sheet-head"><h2>Settings</h2><button class="btn quiet" data-act="close-sheet-btn">Close</button></div>
     <div class="slot"><span>Outfit labels</span><div class="row"><button class="chip" data-act="toggle-labels" aria-pressed="${state.showLabels !== false}">Show labels on outfits</button></div><p class="small muted">Short notes like "Accent: rust" or "Color echo: camel". Tap one to see what it means.</p></div>
     <div class="slot"><span>Plan outfits by</span>${modeSwitch()}</div>
+    <div class="slot"><span>Bold mixing</span><div class="row"><button class="chip" data-act="toggle-boldmix" aria-pressed="${!!state.boldMix}">Allow bold mixing</button></div><p class="small muted">Lets outfit ideas use two accent colors, or two different patterns that share a color. Off by default, so ideas stay easy to wear.</p></div>
     <div class="slot"><span>Backup</span><p class="small muted">Save your palette, pieces and outfits as a file, or load a file to continue on another device. Loading a backup replaces what's here now.</p>
     <div class="row"><button class="btn" data-act="export">Save a backup file</button><button class="btn" data-act="import">Load a backup</button></div></div>
     <div class="slot"><span>Start over</span><p class="small muted">Removes your palette, pieces and outfits from this ${store.db ? "account" : "browser"}. You can undo it for a few seconds, or save a backup first.</p>
@@ -2065,6 +2124,7 @@ async function onClick(e) {
   if (ds.guide) { guide[ds.guide] = guide[ds.guide] === ds.val ? "" : ds.val; guide.open = true; return renderPalette(); }
   if (ds.act === "settings") return openSettings();
   if (ds.act === "start-over") { closeSheet(); anchorId = null; ideas = []; return withUndo("Everything was cleared", () => { state = cleanState({ tagMode: state.tagMode, showLabels: state.showLabels }); }); }
+  if (ds.act === "toggle-boldmix") { state.boldMix = !state.boldMix; ideas = []; shownIdeas = new Set(); genMsg = ""; save(); renderOutfits(); return openSettings(); }
   if (ds.act === "toggle-labels") { state.showLabels = state.showLabels === false; save(); renderOutfits(); return openSettings(); }
   if (ds.act === "export") return exportData();
   if (ds.act === "import") return $("#importInput").click();
@@ -2133,7 +2193,10 @@ async function onClick(e) {
   if (ds.act === "clear-anchor") { anchorId = null; ideas = []; genMsg = ""; return renderOutfits(); }
   if (ds.starter) return addStarter(ds.starter, ds.owned === "1");
   if (ds.act === "generate") {
-    const got = generate(6); ideas = got.length ? got : ideas;
+    let got = generate(6);
+    /* once everything has been shown, start the rotation over instead of coming up empty */
+    if (got.length < 6 && shownIdeas.size > got.length) { shownIdeas = new Set(got.map(o => clothesKey(o.items, anchorPiece()))); got = [...got, ...generate(6 - got.length)]; }
+    ideas = got.length ? got : ideas;
     genMsg = !got.length ? "No new combinations found with these settings. Try a different filter, turn off Comfy day or Only what I own, or add more pieces."
       : got.length < 4 && outOcc !== "Any" ? `Only a few combinations work for ${lc(outOcc)} with these pieces. Tagging more pieces for ${lc(outOcc)} (in each piece's Occasions) gives more ideas.` : "";
     return renderOutfits();
