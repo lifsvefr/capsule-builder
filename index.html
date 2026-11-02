@@ -181,6 +181,38 @@ textarea { min-height: 72px; resize: vertical; }
 .lbframe svg { display: block; width: 100%; height: auto; max-height: none; }
 .toast { display: flex; align-items: center; gap: 4px; max-width: calc(100% - 32px); position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--fg); color: var(--bg); padding: 8px 16px; border-radius: 999px; font-size: 13px; z-index: 30; }
 .how { color: var(--fg); opacity: .8; }
+.pstrip { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 2px; }
+.pstrip::-webkit-scrollbar { display: none; }
+.pthumb { appearance: none; flex: none; width: 76px; height: 76px; padding: 0; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; background: var(--tile); cursor: pointer; font: inherit; color: var(--fg); }
+.pthumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pthumb.padd { display: grid; place-content: center; gap: 0; font-size: 11px; font-weight: 600; background: var(--surface); border-style: dashed; text-align: center; line-height: 1.2; }
+.pthumb.padd span { font-size: 22px; font-weight: 400; line-height: 1; }
+.pthumb:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.favbtn { font-size: 20px; line-height: 1; color: var(--accent); }
+.marks { position: absolute; top: 12px; right: 12px; display: flex; gap: 4px; }
+.mark { width: 26px; height: 26px; border-radius: 50%; background: var(--surface); color: var(--fg); display: grid; place-items: center; border: 1px solid var(--rule); font-size: 14px; }
+.mark svg { width: 15px; height: 15px; }
+.mark.star { color: var(--accent); }
+.othumb { position: relative; }
+.sortrow { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; min-width: 0; }
+.sortrow .chips { flex-basis: 100%; }
+section.block > * { min-width: 0; }
+.sortrow .chips { margin-bottom: 0; flex: 1 1 260px; min-width: 0; }
+.sortsel { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.sortsel select { width: auto; padding: 6px 8px; font-size: 13px; }
+.lightbox { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: calc(56px + env(safe-area-inset-top, 0px)) 16px calc(20px + env(safe-area-inset-bottom, 0px)); background: rgba(12, 12, 14, .72); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); grid-template-rows: 1fr auto; gap: 12px; }
+.lb-figure { margin: 0; display: grid; gap: 8px; justify-items: center; align-content: center; min-height: 0; max-height: 100%; }
+.lb-figure img { max-width: min(92vw, 900px); max-height: calc(100vh - 190px); max-height: calc(100dvh - 190px); object-fit: contain; border-radius: 8px; display: block; box-shadow: 0 10px 40px rgba(0,0,0,.4); }
+.lb-figure figcaption { color: #F1EFE8; font-size: 13px; display: flex; gap: 10px; }
+.lb-count { opacity: .75; }
+.lb-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.lb-actions .btn { background: rgba(255,255,255,.92); color: #222; border-color: transparent; }
+.lb-actions .btn.primary { background: var(--accent); color: var(--accent-ink); }
+.lb-close { position: absolute; top: calc(12px + env(safe-area-inset-top, 0px)); right: 12px; width: 44px; height: 44px; border-radius: 50%; border: 0; background: rgba(255,255,255,.92); color: #222; font-size: 20px; cursor: pointer; }
+.lb-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%; border: 0; background: rgba(255,255,255,.85); color: #222; font-size: 26px; line-height: 1; cursor: pointer; }
+.lb-nav.prev { left: 10px; } .lb-nav.next { right: 10px; }
+.lb-close:focus-visible, .lb-nav:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+html.lb-open, html.lb-open body { overflow: hidden; }
 .toast.top { bottom: auto; top: calc(14px + env(safe-area-inset-top, 0px)); }
 .othumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 .othumb { appearance: none; font: inherit; color: inherit; text-align: left; cursor: pointer; background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 6px; min-width: 0; content-visibility: auto; contain-intrinsic-size: auto 240px; }
@@ -219,8 +251,10 @@ details.fold > summary .small { font-weight: 400; }
   <div id="view-outfits" role="tabpanel" aria-labelledby="tab-outfits" hidden></div>
 </main>
 <div id="sheetRoot"></div>
+<div id="lightRoot"></div>
 <input type="file" id="imgInput" accept="image/*" hidden>
 <input type="file" id="refInput" accept="image/*" hidden>
+<input type="file" id="outfitPhotoInput" accept="image/*" hidden>
 <input type="file" id="importInput" accept="application/json,.json" hidden>
 
 <script>
@@ -614,7 +648,7 @@ function patternDef(id, fill) {
   const R = (x, y, w, h, f, o = 1) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${f}" opacity="${o}"/>`;
   switch (fill.kind) {
     case "stripes": {
-      const w = fill.width === "wide" ? 16 : fill.width === "narrow" ? 6 : 10;
+      const w = fill.width === "wide" ? 16 : fill.width === "narrow" ? 6 : fill.width === "fine" ? 3 : 10;
       const inner = R(0, 0, w, w, g) + R(0, 0, w, w * 0.4, c[1] || "#333") + (c[2] ? R(0, w * 0.55, w, w * 0.15, c[2]) : "");
       const rot = fill.dir === "v" ? ' patternTransform="rotate(90)"' : fill.dir === "d" ? ' patternTransform="rotate(45)"' : "";
       return `<pattern id="${id}" width="${w}" height="${w}" patternUnits="userSpaceOnUse"${rot}>${inner}</pattern>`;
@@ -692,7 +726,7 @@ const store = { db: null, uid: null, dbWritable: true, mode: "local" };
 function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
 function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
-function imageIds() { return [...new Set(state.pieces.flatMap(p => [p.fill?.kind === "image" ? p.fill.image : "", p.photo || ""]).filter(Boolean))]; }
+function imageIds() { return [...new Set([...state.pieces.flatMap(p => [p.fill?.kind === "image" ? p.fill.image : "", p.photo || ""]), ...state.outfits.flatMap(o => o.photos || [])].filter(Boolean))]; }
 function loadLocal() {
   const raw = lsGet(LS_KEY);
   let parsed = null; if (raw) { try { parsed = JSON.parse(raw); } catch (e) {} }
@@ -961,7 +995,7 @@ function cleanState(raw) {
     let kind = patIds.has(f.kind) ? f.kind : "solid";
     const fill = { kind, colors: sArr(f.colors).slice(0, 4).map(c => typeof c === "string" && HEX_RE.test(c) ? c : "") };
     if (!fill.colors[0]) fill.colors[0] = "#9A9C9E";
-    if (kind === "stripes") { fill.dir = ["h", "v", "d"].includes(f.dir) ? f.dir : "h"; fill.width = ["narrow", "medium", "wide"].includes(f.width) ? f.width : "medium"; }
+    if (kind === "stripes") { fill.dir = ["h", "v", "d"].includes(f.dir) ? f.dir : "h"; fill.width = ["fine", "narrow", "medium", "wide"].includes(f.width) ? f.width : "medium"; }
     if (kind === "image") { if (typeof f.image === "string" && SAFE_ID.test(f.image)) { fill.image = f.image; fill.colors = []; } else { fill.kind = "solid"; } }
     const id = newId(p.id); if (typeof p.id === "string" && !idMap.has(p.id)) idMap.set(p.id, id);
     let occasions = Array.isArray(p.occasions) ? pick(p.occasions, OCCASIONS) : defaultOccasions(t);
@@ -978,13 +1012,14 @@ function cleanState(raw) {
     const items = o.items.map(x => idMap.get(x)).filter((x, i, a) => x && have.has(x) && a.indexOf(x) === i);
     const n = Number.isInteger(o.num) && o.num > 0 && o.num < 1e6 ? o.num : 0;
     return { id: newId(o.id), num: n, items, occasion: OCCASIONS.includes(OLD_NAMES[o.occasion] || o.occasion) ? (OLD_NAMES[o.occasion] || o.occasion) : (o.smart === true ? "Work" : ""),
-      comfy: o.comfy === true, note: sStr(o.note, 300), seasons: pick(o.seasons, TAG_MODES.seasons), weather: pick(o.weather, TAG_MODES.weather) };
+      comfy: o.comfy === true, note: sStr(o.note, 300), seasons: pick(o.seasons, TAG_MODES.seasons), weather: pick(o.weather, TAG_MODES.weather),
+      photos: sArr(o.photos).filter((x, i, a) => typeof x === "string" && SAFE_ID.test(x) && a.indexOf(x) === i).slice(0, 8), fav: o.fav === true };
   }).filter(o => o.items.length >= 2);
   /* stable outfit numbers: keep existing ones, number the rest in order */
   const taken = new Set(); for (const o of outfits) { if (o.num && !taken.has(o.num)) taken.add(o.num); else o.num = 0; }
   let next = 1; for (const o of outfits) if (!o.num) { while (taken.has(next)) next++; o.num = next; taken.add(next); }
   const maxNum = Math.max(0, ...outfits.map(o => o.num));
-  return { palette, pieces, outfits, tagMode: r.tagMode === "weather" ? "weather" : "seasons", showLabels: r.showLabels !== false, boldMix: r.boldMix === true,
+  return { palette, pieces, outfits, tagMode: r.tagMode === "weather" ? "weather" : "seasons", showLabels: r.showLabels !== false, boldMix: r.boldMix === true, outfitSort: ["new", "old", "az", "fav"].includes(r.outfitSort) ? r.outfitSort : "new",
     lookbookTitle: sStr(r.lookbookTitle, 40), styleId: typeof r.styleId === "string" && STYLE[r.styleId] ? r.styleId : "",
     updatedAt: Number.isFinite(r.updatedAt) ? r.updatedAt : 0, nextNum: Math.max(maxNum + 1, Number.isInteger(r.nextNum) ? r.nextNum : 1) };
 }
@@ -1341,7 +1376,7 @@ function renderSheet() {
         </div>
         <label class="field">Name<input type="text" id="pieceName" value="${esc(draft.name)}" maxlength="60"></label>
         <label class="field">Color or pattern<select id="patSel">${PATTERNS.map(p => `<option value="${p.id}"${p.id === draft.fill.kind ? " selected" : ""}>${p.label}</option>`).join("")}</select></label>
-        ${draft.fill.kind === "stripes" ? `<div class="row"><label class="field" style="flex:1">Direction<select id="stripeDir"><option value="h"${draft.fill.dir === "h" ? " selected" : ""}>Horizontal</option><option value="v"${draft.fill.dir === "v" ? " selected" : ""}>Vertical</option><option value="d"${draft.fill.dir === "d" ? " selected" : ""}>Diagonal</option></select></label><label class="field" style="flex:1">Width<select id="stripeW"><option value="narrow"${draft.fill.width === "narrow" ? " selected" : ""}>Narrow</option><option value="medium"${draft.fill.width === "medium" ? " selected" : ""}>Medium</option><option value="wide"${draft.fill.width === "wide" ? " selected" : ""}>Wide</option></select></label></div>` : ""}
+        ${draft.fill.kind === "stripes" ? `<div class="row"><label class="field" style="flex:1">Direction<select id="stripeDir"><option value="h"${draft.fill.dir === "h" ? " selected" : ""}>Horizontal</option><option value="v"${draft.fill.dir === "v" ? " selected" : ""}>Vertical</option><option value="d"${draft.fill.dir === "d" ? " selected" : ""}>Diagonal</option></select></label><label class="field" style="flex:1">Width<select id="stripeW"><option value="fine"${draft.fill.width === "fine" ? " selected" : ""}>Fine</option><option value="narrow"${draft.fill.width === "narrow" ? " selected" : ""}>Narrow</option><option value="medium"${draft.fill.width === "medium" ? " selected" : ""}>Medium</option><option value="wide"${draft.fill.width === "wide" ? " selected" : ""}>Wide</option></select></label></div>` : ""}
         ${draft.fill.kind === "image" ? `<div class="slot"><span>Fabric photo</span><div class="row"><button class="btn" data-act="upload">${draft.fill.image && IMAGES[draft.fill.image] ? "Replace photo" : "Choose a photo"}</button><span class="small muted">A close-up of the fabric works best. It's kept small.</span></div></div>`
           : `<div class="slots">${pat.slots.map((s, i) => `<div class="slot"><span>${s}</span>${colorChoices(i)}</div>`).join("")}</div>`}
         <label class="field">Texture<select id="texSel">${TEXTURES.map(t => `<option value="${t.id}"${t.id === draft.texture ? " selected" : ""}>${t.label}</option>`).join("")}</select></label>
@@ -1791,8 +1826,9 @@ function outfitCard(o, idea, inSheet) {
   const wishN = items.filter(p => !owned(p)).length;
   return `<article class="outfit${idea ? " idea" : ""}">
     <div class="row"><div><div class="tag">${tags.length ? esc(tags.join(" · ")) : esc(allTagsLabel())}</div><h3>${idea ? "Idea" : "Outfit " + idx}</h3></div>
-      ${idea ? `<div class="row"><button class="btn quiet" data-skip="${o.id}">Skip</button><button class="btn primary" data-keep="${o.id}">Save</button></div>` : (inSheet ? `<button class="btn quiet" data-act="close-sheet-btn">Close</button>` : `<button class="btn quiet" data-del-outfit="${o.id}" aria-label="Delete outfit ${idx}">Delete</button>`)}</div>
+      ${idea ? `<div class="row"><button class="btn quiet" data-skip="${o.id}">Skip</button><button class="btn primary" data-keep="${o.id}">Save</button></div>` : (inSheet ? `<div class="row"><button class="btn quiet favbtn" data-fav="${o.id}" aria-pressed="${!!o.fav}" aria-label="${o.fav ? "Remove from favorites" : "Add to favorites"}">${o.fav ? "★" : "☆"}</button><button class="btn quiet" data-act="close-sheet-btn">Close</button></div>` : `<button class="btn quiet" data-del-outfit="${o.id}" aria-label="Delete outfit ${idx}">Delete</button>`)}</div>
     ${lookHTML(items)}
+    ${inSheet ? photoStripHTML(o) : ""}
     ${labelsHTML(items)}
     <p class="small muted">${items.map(p => { const h = howWorn(p, items); return esc(p.name) + (h ? ` <span class="how">(${esc(h)})</span>` : "") + (owned(p) ? "" : " (wishlist)"); }).join(" · ")}</p>
     ${wishN ? `<div class="badge">Needs ${wishN} wishlist piece${wishN === 1 ? "" : "s"}</div>` : ""}
@@ -1803,6 +1839,8 @@ function outfitCard(o, idea, inSheet) {
 function savedMatches(o, f) {
   if (f === "All") return true;
   if (f === "Comfy") return !!o.comfy;
+  if (f === "Favorites") return !!o.fav;
+  if (f === "With photos") return hasPhotos(o);
   if (OCCASIONS.includes(f)) return o.occasion === f;
   const items = o.items.map(id => state.pieces.find(p => p.id === id)).filter(Boolean);
   return (Array.isArray(o[tagMode()]) ? o[tagMode()] : commonTags(items)).includes(f);
@@ -1810,10 +1848,10 @@ function savedMatches(o, f) {
 function renderOutfits() {
   const v = $("#view-outfits");
   const enough = state.pieces.some(p => CORE(p) === "Shoes") && (state.pieces.some(p => CORE(p) === "Dresses") || (state.pieces.some(p => CORE(p) === "Tops" && !TYPE[p.type].layer) && state.pieces.some(p => CORE(p) === "Bottoms")));
-  if (outFilter !== "All" && !["Comfy", ...OCCASIONS, ...TAGS()].includes(outFilter)) outFilter = "All";
+  if (outFilter !== "All" && !["Comfy", "Favorites", "With photos", ...OCCASIONS, ...TAGS()].includes(outFilter)) outFilter = "All";
   const A = anchorPiece(); if (!A) anchorId = null;
   const saved = state.outfits.filter(o => savedMatches(o, outFilter) && (!A || o.items.includes(A.id)));
-  const filters = ["All", ...TAGS(), ...OCCASIONS.filter(x => state.outfits.some(o => o.occasion === x)), ...(state.outfits.some(o => o.comfy) ? ["Comfy"] : [])];
+  const filters = ["All", ...TAGS(), ...OCCASIONS.filter(x => state.outfits.some(o => o.occasion === x)), ...(state.outfits.some(o => o.comfy) ? ["Comfy"] : []), ...(state.outfits.some(o => o.fav) ? ["Favorites"] : []), ...(state.outfits.some(hasPhotos) ? ["With photos"] : [])];
   v.innerHTML = `
   <section class="block">
     <h2>Outfit ideas</h2>
@@ -1829,8 +1867,8 @@ function renderOutfits() {
   </section>
   <section class="block">
     <div class="row" style="justify-content:space-between"><h2>Saved outfits${A ? ` <span class="small muted">${saved.length} with this piece</span>` : state.outfits.length ? ` <span class="small muted">${state.outfits.length}</span>` : ""}</h2>${state.outfits.length ? `<div class="row"><button class="btn" data-act="lookbook">Lookbook</button><button class="btn" data-act="new-outfit">Make one myself</button></div>` : ""}</div>
-    ${state.outfits.length ? `<div class="chips">${filters.map(s => `<button class="chip" data-ofilter="${s}" aria-pressed="${s === outFilter}">${s}</button>`).join("")}</div>
-      ${saved.length ? `<div class="othumbs">${saved.slice().reverse().slice(0, outLimit).map(outfitThumb).join("")}</div>${saved.length > outLimit ? `<div class="more"><button class="btn" data-act="more-outfits">Show more (${saved.length - outLimit} left)</button></div>` : ""}` : `<p class="small muted">${A ? "No saved outfits use this piece yet. Save an idea above." : "No saved outfits match this filter."}</p>`}`
+    ${state.outfits.length ? `<div class="sortrow"><div class="chips">${filters.map(s => `<button class="chip" data-ofilter="${s}" aria-pressed="${s === outFilter}">${s}</button>`).join("")}</div><label class="sortsel">Sort<select id="outfitSort">${SORTS.map(([v, l]) => `<option value="${v}"${(state.outfitSort || "new") === v ? " selected" : ""}>${l}</option>`).join("")}</select></label></div>
+      ${saved.length ? `<div class="othumbs">${sortOutfits(saved).slice(0, outLimit).map(outfitThumb).join("")}</div>${saved.length > outLimit ? `<div class="more"><button class="btn" data-act="more-outfits">Show more (${saved.length - outLimit} left)</button></div>` : ""}` : `<p class="small muted">${A ? "No saved outfits use this piece yet. Save an idea above." : "No saved outfits match this filter."}</p>`}`
     : `<div class="empty"><p>No saved outfits yet.</p><p class="small">Save the ideas you like, or put an outfit together yourself.</p></div>`}
   </section>`;
 }
@@ -1838,7 +1876,7 @@ let genMsg = "", outLimit = 24;
 function outfitThumb(o) {
   const items = piecesOf(o.items);
   const tags = [...outfitTags(o, items)]; if (o.occasion) tags.push(o.occasion);
-  return `<button class="othumb" data-open-outfit="${o.id}" aria-label="Outfit ${o.num}: ${esc(items.map(p => p.name).join(", "))}">${lookHTML(items, true).replace(/role="img" aria-label="[^"]*"/, 'aria-hidden="true"')}<b>Outfit ${o.num}</b><span class="sub">${esc(o.note || tags.join(" · ") || allTagsLabel())}</span></button>`;
+  return `<button class="othumb" data-open-outfit="${o.id}" aria-label="Outfit ${o.num}${o.fav ? ", favorite" : ""}${hasPhotos(o) ? ", has photos" : ""}: ${esc(items.map(p => p.name).join(", "))}">${lookHTML(items, true).replace(/role="img" aria-label="[^"]*"/, 'aria-hidden="true"')}${o.fav || hasPhotos(o) ? `<span class="marks" aria-hidden="true">${o.fav ? `<span class="mark star">★</span>` : ""}${hasPhotos(o) ? `<span class="mark"><svg viewBox="0 0 24 24"><path d="M4 7h3l2-2h6l2 2h3v12H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></span>` : ""}</span>` : ""}<b>Outfit ${o.num}</b><span class="sub">${esc(o.note || tags.join(" · ") || allTagsLabel())}</span></button>`;
 }
 function openOutfit(id) {
   const o = state.outfits.find(x => x.id === id); if (!o) return closeSheet();
@@ -2041,6 +2079,65 @@ function toast(t, action, hold) {
   clearTimeout(toastTimer); toastTimer = setTimeout(() => el.remove(), action ? 7000 : 1800);
 }
 
+/* ---------- outfit photos, the photo viewer, favorites and sorting ---------- */
+const outfitPhotos = o => (o.photos || []).filter(k => IMAGES[k]);
+const hasPhotos = o => outfitPhotos(o).length > 0;
+let photoTarget = null;
+function photoStripHTML(o) {
+  const ps = outfitPhotos(o);
+  return `<div class="pstrip">${ps.map((k, i) => `<button class="pthumb" data-photo-open="${o.id}" data-idx="${i}" aria-label="Open photo ${i + 1} of ${ps.length}"><img src="${IMAGES[k]}" alt=""></button>`).join("")}<button class="pthumb padd" data-act="outfit-photo" data-oid="${o.id}"><span aria-hidden="true">+</span>Add a photo</button></div>`;
+}
+const SORTS = [["new", "Newest first"], ["old", "Oldest first"], ["az", "Name A–Z"], ["fav", "Favorites first"]];
+const outfitName = o => o.note || "Outfit " + o.num;
+function sortOutfits(list) {
+  const by = {
+    new: (a, b) => b.num - a.num,
+    old: (a, b) => a.num - b.num,
+    az: (a, b) => outfitName(a).localeCompare(outfitName(b), undefined, { numeric: true, sensitivity: "base" }),
+    fav: (a, b) => (b.fav ? 1 : 0) - (a.fav ? 1 : 0) || b.num - a.num
+  };
+  return list.slice().sort(by[state.outfitSort] || by.new);
+}
+
+/* a large, centered view of a photo, with the page dimmed and blurred behind it */
+let lightState = null;
+function openLightbox(items, index, opener) {
+  if (!items.length) return;
+  lightState = { items, i: Math.max(0, Math.min(index, items.length - 1)), opener: opener || document.activeElement };
+  renderLightbox();
+}
+function renderLightbox() {
+  const root = $("#lightRoot");
+  if (!lightState) { root.innerHTML = ""; document.documentElement.classList.remove("lb-open"); return; }
+  const { items, i } = lightState, it = items[i];
+  document.documentElement.classList.add("lb-open");
+  root.innerHTML = `<div class="lightbox" role="dialog" aria-modal="true" aria-label="${esc(it.label || "Photo")}">
+    <figure class="lb-figure"><img src="${it.src}" alt="${esc(it.alt || "")}"><figcaption>${items.length > 1 ? `<span class="lb-count">${i + 1} / ${items.length}</span>` : ""}${it.caption ? `<span>${esc(it.caption)}</span>` : ""}</figcaption></figure>
+    ${(it.actions || []).length ? `<div class="lb-actions">${it.actions.map(a => `<button class="btn${a.primary ? " primary" : ""}" data-light-act="${a.id}">${esc(a.label)}</button>`).join("")}</div>` : ""}
+    ${items.length > 1 ? `<button class="lb-nav prev" data-light-step="-1" aria-label="Previous photo">‹</button><button class="lb-nav next" data-light-step="1" aria-label="Next photo">›</button>` : ""}
+    <button class="lb-close" data-light-close="1" aria-label="Close">✕</button>
+  </div>`;
+  root.querySelector(".lb-close").focus({ preventScroll: true });
+}
+function closeLightbox() {
+  const op = lightState && lightState.opener; lightState = null; renderLightbox();
+  if (op && op.isConnected) op.focus({ preventScroll: true });
+}
+function stepLightbox(d) { if (!lightState) return; const n = lightState.items.length; lightState.i = (lightState.i + d + n) % n; renderLightbox(); }
+function outfitLightItems(o) {
+  return outfitPhotos(o).map((k, i) => ({ src: IMAGES[k], alt: `Photo ${i + 1} of outfit ${o.num}`, label: `${outfitName(o)}, photo ${i + 1}`, caption: outfitName(o),
+    actions: [{ id: "remove", label: "Remove photo", run: () => { const id = o.id; closeLightbox(); withUndo("Photo removed", () => { const x = state.outfits.find(y => y.id === id); if (x) x.photos = (x.photos || []).filter(p => p !== k); }); openOutfit(id); } }] }));
+}
+/* clicks on the dark backdrop close the viewer; swipes move between photos */
+document.addEventListener("click", e => { if (lightState && e.target.classList && (e.target.classList.contains("lightbox") || e.target.classList.contains("lb-figure"))) closeLightbox(); });
+let lbTouch = null;
+document.addEventListener("touchstart", e => { if (lightState && e.touches.length === 1) lbTouch = [e.touches[0].clientX, e.touches[0].clientY]; }, { passive: true });
+document.addEventListener("touchend", e => {
+  if (!lightState || !lbTouch) return;
+  const t = e.changedTouches[0], dx = t.clientX - lbTouch[0], dy = t.clientY - lbTouch[1]; lbTouch = null;
+  if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) stepLightbox(dx < 0 ? 1 : -1);
+}, { passive: true });
+
 /* ---------- events ---------- */
 /* keep keyboard focus in a sensible place when parts of the page are redrawn */
 const cssEsc = v => window.CSS && CSS.escape ? CSS.escape(v) : String(v).replace(/["\\\]\[#.:]/g, "\\$&");
@@ -2053,6 +2150,7 @@ function focusKey(el) {
 }
 let sheetOpener = null;
 function settleFocus(key, hadSheet) {
+  if (lightState) return;
   const root = $("#sheetRoot"), sheet = root.querySelector(".sheet"), a = document.activeElement;
   if (sheet && !hadSheet) { $(".toast")?.classList.add("top"); sheetOpener = key; if (!sheet.contains(a)) { sheet.tabIndex = -1; sheet.focus({ preventScroll: true }); } return; }
   if (!sheet && hadSheet) {
@@ -2080,8 +2178,9 @@ document.addEventListener("keydown", e => {
     const n = e.key === "Home" ? 0 : e.key === "End" ? tabs.length - 1 : (i + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
     e.preventDefault(); show(tabs[n].dataset.view); tabs[n].focus(); return;
   }
+  if (lightState && ["ArrowLeft", "ArrowRight"].includes(e.key)) { e.preventDefault(); return stepLightbox(e.key === "ArrowRight" ? 1 : -1); }
   if (e.key === "Tab") {
-    const sheet = $("#sheetRoot .sheet"); if (!sheet) return;
+    const sheet = $("#lightRoot .lightbox") || $("#sheetRoot .sheet"); if (!sheet) return;
     const f = [...sheet.querySelectorAll('button:not([disabled]), a[href], input:not([type="hidden"]), select, textarea, summary, [tabindex="0"]')].filter(x => x.offsetParent !== null);
     if (!f.length) return;
     const first = f[0], last = f[f.length - 1];
@@ -2094,6 +2193,15 @@ async function onClick(e) {
   if (!t) return;
   if (t.matches("[data-act='close-sheet']") && e.target !== t) return; // clicks inside the sheet
   const ds = t.dataset;
+  if (lightState) {
+    if (ds.lightClose) return closeLightbox();
+    if (ds.lightStep) return stepLightbox(+ds.lightStep);
+    if (ds.lightAct) { const a = (lightState.items[lightState.i].actions || []).find(x => x.id === ds.lightAct); return a && a.run(); }
+    return;
+  }
+  if (ds.photoOpen) { const o = state.outfits.find(x => x.id === ds.photoOpen); return o && openLightbox(outfitLightItems(o), +ds.idx || 0, t); }
+  if (ds.act === "outfit-photo") { photoTarget = ds.oid; return $("#outfitPhotoInput").click(); }
+  if (ds.fav) { const o = state.outfits.find(x => x.id === ds.fav); if (!o) return; o.fav = !o.fav; save(); renderOutfits(); openOutfit(o.id); return toast(o.fav ? "Added to favorites" : "Removed from favorites"); }
   if (ds.explain) {
     const card = t.closest(".outfit, .sheet"); const box = card && card.querySelector(".explain"); if (!box) return;
     const open = t.getAttribute("aria-expanded") === "true";
@@ -2283,6 +2391,8 @@ document.addEventListener("change", e => {
   if (t.id === "colHex") { colorDraft.hex = t.value; const n = $("#colName"); if (n) n.placeholder = autoName(t.value); }
   if (t.id === "imgInput") return handleImage(t);
   if (t.id === "refInput") { const f = t.files && t.files[0]; t.value = ""; if (!f || !draft) return; return readImage(f, 360, src => { const id = draft.photo || uidGen(); IMAGES[id] = src; draft.photo = id; pushImage(id, src); renderSheet(); }); }
+  if (t.id === "outfitPhotoInput") { const f = t.files && t.files[0]; t.value = ""; const o = state.outfits.find(x => x.id === photoTarget); if (!f || !o) return; return readImage(f, 1000, src => { const id = uidGen(); IMAGES[id] = src; o.photos = [...(o.photos || []), id]; pushImage(id, src); save(); renderOutfits(); openOutfit(o.id); toast("Photo added"); }); }
+  if (t.id === "outfitSort") { state.outfitSort = t.value; save(); return renderOutfits(); }
   if (t.id === "importInput") return handleImport(t);
 });
 document.addEventListener("input", e => {
@@ -2290,7 +2400,7 @@ document.addEventListener("input", e => {
   if (e.target.id === "pieceSearch") { pieceSearch = e.target.value; renderPieceList(); }
   if (e.target.id === "typeSearch") { typeQuery = e.target.value; const g = $("#typegrid"); if (g) g.innerHTML = typeGridHTML(); const c = $("#typeCats"); if (c) c.hidden = !!typeQuery.trim(); }
 });
-document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#sheetRoot").innerHTML) { closeSheet(); settleFocus(null, true); } });
+document.addEventListener("keydown", e => { if (e.key !== "Escape") return; if (lightState) { closeLightbox(); return; } if ($("#sheetRoot").innerHTML) { closeSheet(); settleFocus(null, true); } });
 
 /* images, backup */
 function handleImage(input) {

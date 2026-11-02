@@ -12,6 +12,7 @@ No account, no ads, no tracking. Everything you add stays in your own browser.
 - **Your pieces, drawn.** Over 120 garment types, from tees and pleated skirts to kurtas, clogs and berets. Choose colors from your palette, add patterns (stripes, plaid, florals and more), textures, fit, and an optional photo or shop link.
 - **Outfit ideas.** Filter by season or weather and by occasion, or build ideas around one piece. Ideas follow sensible rules: one accent color, one pattern, a coat when it's cold, no socks with sandals. Outfits are laid out flat at true scale, so a cropped top looks cropped next to a long coat. Each outfit lists how its pieces are worn (half-tucked, cuffed, worn open), shirts can be layered open over a tee, and ideas never repeat an outfit you've saved. For more daring outfits, turn on **Bold mixing** in Settings to allow two accent colors or two patterns.
 - **Short labels.** Each outfit gets a few plain notes, like "Accent: rust", "Shape: relaxed all over" or "Pattern mix: stripes + floral". Tap one to see what it means, or turn them off in Settings.
+- **Photos, favorites and sorting.** Add your own photos to any outfit and tap one to see it large. Star your favorites, and sort saved outfits by newest, oldest, name or favorites.
 - **Lookbook.** Turn your palette, pieces and saved outfits into tidy pages and save them as images.
 - **Backups.** Save everything as a file and load it on another device.
 
