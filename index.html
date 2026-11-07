@@ -229,6 +229,37 @@ details.fold > summary .small { font-weight: 400; }
 .starthere ol { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 4px; }
 .sheet:focus { outline: none; }
 @media (prefers-reduced-motion: no-preference) { .card, .othumb { transition: border-color .15s ease; } }
+/* piece pop-up: navy and cream (cream and brown in dark mode), with mustard */
+#popRoot { --pp-bg: #2E3A55; --pp-fg: #F2EBDD; --pp-muted: #C3C2C4; --pp-acc: #D4A846; --pp-acc-ink: #2B2116; --pp-tile: #EFE7D6; --pp-rule: rgba(242,235,221,.18); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) #popRoot { --pp-bg: #EFE6D4; --pp-fg: #3E2C22; --pp-muted: #6E5D50; --pp-acc: #7A2E3A; --pp-acc-ink: #FFF; --pp-tile: #E3D8C2; --pp-rule: rgba(62,44,34,.16); } }
+:root[data-theme="dark"] #popRoot { --pp-bg: #EFE6D4; --pp-fg: #3E2C22; --pp-muted: #6E5D50; --pp-acc: #7A2E3A; --pp-acc-ink: #FFF; --pp-tile: #E3D8C2; --pp-rule: rgba(62,44,34,.16); }
+.pp-scrim { position: fixed; inset: 0; z-index: 60; background: rgba(15,14,12,.42); display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top, 0px)) 14px max(16px, env(safe-area-inset-bottom, 0px)); animation: pp-fade .18s ease-out; }
+.pp { width: min(440px, 100%); max-height: 100%; overflow: auto; background: var(--pp-bg); color: var(--pp-fg); border-radius: 18px; padding: 18px 18px 20px; display: grid; gap: 10px; box-shadow: 0 18px 50px rgba(0,0,0,.35); animation: pp-in .22s cubic-bezier(.2,.8,.3,1.2); }
+@keyframes pp-fade { from { opacity: 0; } }
+@keyframes pp-in { from { opacity: 0; transform: translateY(10px) scale(.96); } }
+@media (prefers-reduced-motion: reduce) { .pp-scrim, .pp { animation: none; } }
+.pp-head { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
+.pp-head h2 { margin: 2px 0 0; color: var(--pp-fg); }
+.pp-kicker { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--pp-acc); font-weight: 700; }
+.pp-x { appearance: none; border: 0; background: none; color: var(--pp-acc); font-weight: 700; padding: 4px 2px; cursor: pointer; }
+.pp-art { background: var(--pp-tile); border-radius: 12px; padding: 16px; display: grid; place-items: center; }
+.pp-art svg { width: min(200px, 60%); height: auto; max-height: 220px; }
+.pp-sub { margin: 0; font-size: 14px; color: var(--pp-muted); }
+.pp-note { margin: 0; font-size: 14px; font-style: italic; }
+.pp-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.pp-btn { appearance: none; border: 1px solid var(--pp-rule); background: transparent; color: var(--pp-fg); border-radius: 999px; padding: 9px 16px; font-weight: 600; cursor: pointer; }
+.pp-btn.main { background: var(--pp-acc); color: var(--pp-acc-ink); border-color: var(--pp-acc); }
+.pp-btn.small { padding: 5px 12px; font-size: 13px; }
+.pp-swaps { border-top: 1px solid var(--pp-rule); padding-top: 12px; margin-top: 4px; display: grid; gap: 10px; }
+.pp-swaps h3 { margin: 0; color: var(--pp-fg); }
+.pp-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.pp-swap { display: grid; gap: 6px; justify-items: start; }
+.pp-mini { width: 100%; border-radius: 10px; overflow: hidden; }
+.pp-mini .look { margin: 0; border-radius: 10px; }
+.pp-x:focus:not(:focus-visible) { outline: none; }
+.pp-swapname { font-size: 13px; font-weight: 600; }
+.pp-swapname span { display: block; font-weight: 400; color: var(--pp-muted); }
+.flatlay [data-tp] { cursor: pointer; }
 </style>
 </head>
 <body>
@@ -726,6 +757,11 @@ const store = { db: null, uid: null, dbWritable: true, mode: "local" };
 function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
 function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
+/* small per-device preferences: light/dark/device theme and sound */
+const PREF_KEY = LS_KEY.replace(/-v1$/, "");
+function themePref() { const t = lsGet(PREF_KEY + "-theme"); return t === "light" || t === "dark" ? t : "device"; }
+function applyTheme() { const t = themePref(); if (t === "device") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t; }
+applyTheme();
 function imageIds() { return [...new Set([...state.pieces.flatMap(p => [p.fill?.kind === "image" ? p.fill.image : "", p.photo || ""]), ...state.outfits.flatMap(o => o.photos || [])].filter(Boolean))]; }
 function loadLocal() {
   const raw = lsGet(LS_KEY);
@@ -1674,7 +1710,7 @@ function flatlayParts(items) {
   if (R.placed.length) place(R, M.w / 2 + COLGAP + R.w / 2);
   const minX = Math.min(...out.map(o => o.x)), maxX = Math.max(...out.map(o => o.x + o.w));
   const P2 = 5, vbW = maxX - minX + P2 * 2, vbH = H + P2 * 2;
-  const svgs = out.map(o => drawPiece(o.p, { vb: o.vb.join(" "), attrs: `x="${(o.x).toFixed(1)}" y="${(o.y).toFixed(1)}" width="${o.w.toFixed(1)}" height="${o.h.toFixed(1)}"` })).join("");
+  const svgs = out.map(o => drawPiece(o.p, { vb: o.vb.join(" "), attrs: `data-tp="${o.p.id}" x="${(o.x).toFixed(1)}" y="${(o.y).toFixed(1)}" width="${o.w.toFixed(1)}" height="${o.h.toFixed(1)}"` })).join("");
   return { svgs, vb: `${(minX - P2).toFixed(1)} ${-P2} ${vbW.toFixed(1)} ${vbH.toFixed(1)}` };
 }
 function lookHTML(items, compact) {
@@ -1824,7 +1860,7 @@ function outfitCard(o, idea, inSheet) {
   const idx = o.num;
   const tags = [...outfitTags(o, items)]; if (o.occasion) tags.push(o.occasion); if (o.comfy) tags.push("Comfy");
   const wishN = items.filter(p => !owned(p)).length;
-  return `<article class="outfit${idea ? " idea" : ""}">
+  return `<article class="outfit${idea ? " idea" : ""}" data-oid="${o.id}">
     <div class="row"><div><div class="tag">${tags.length ? esc(tags.join(" · ")) : esc(allTagsLabel())}</div><h3>${idea ? "Idea" : "Outfit " + idx}</h3></div>
       ${idea ? `<div class="row"><button class="btn quiet" data-skip="${o.id}">Skip</button><button class="btn primary" data-keep="${o.id}">Save</button></div>` : (inSheet ? `<div class="row"><button class="btn quiet favbtn" data-fav="${o.id}" aria-pressed="${!!o.fav}" aria-label="${o.fav ? "Remove from favorites" : "Add to favorites"}">${o.fav ? "★" : "☆"}</button><button class="btn quiet" data-act="close-sheet-btn">Close</button></div>` : `<button class="btn quiet" data-del-outfit="${o.id}" aria-label="Delete outfit ${idx}">Delete</button>`)}</div>
     ${lookHTML(items)}
@@ -1906,6 +1942,8 @@ function openSettings() {
   $("#sheetRoot").innerHTML = `<div class="scrim" data-act="close-sheet"><div class="sheet" role="dialog" aria-modal="true" aria-label="Settings" data-stop style="max-width:480px">
     <div class="sheet-head"><h2>Settings</h2><button class="btn quiet" data-act="close-sheet-btn">Close</button></div>
     <div class="slot"><span>Outfit labels</span><div class="row"><button class="chip" data-act="toggle-labels" aria-pressed="${state.showLabels !== false}">Show labels on outfits</button></div><p class="small muted">Short notes like "Accent: rust" or "Color echo: camel". Tap one to see what it means.</p></div>
+    <div class="slot"><span>Appearance</span><div class="row">${[["device", "Match device"], ["light", "Light"], ["dark", "Dark"]].map(([v, l]) => `<button class="chip" data-theme-pick="${v}" aria-pressed="${themePref() === v}">${l}</button>`).join("")}</div></div>
+    <div class="slot"><span>Sound</span><div class="row"><button class="chip" data-act="toggle-sound" aria-pressed="${soundOn()}">Sound when a piece opens</button></div></div>
     <div class="slot"><span>Plan outfits by</span>${modeSwitch()}</div>
     <div class="slot"><span>Bold mixing</span><div class="row"><button class="chip" data-act="toggle-boldmix" aria-pressed="${!!state.boldMix}">Allow bold mixing</button></div><p class="small muted">Lets outfit ideas use two accent colors, or two different patterns that share a color. Off by default, so ideas stay easy to wear.</p></div>
     <div class="slot"><span>Backup</span><p class="small muted">Save your palette, pieces and outfits as a file, or load a file to continue on another device. Loading a backup replaces what's here now.</p>
@@ -2138,6 +2176,90 @@ document.addEventListener("touchend", e => {
   if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) stepLightbox(dx < 0 ? 1 : -1);
 }, { passive: true });
 
+/* ---------- tap a piece in an outfit: a pop-up with details, its outfits and swaps ---------- */
+let popCtx = null, popAudio = null;
+const soundOn = () => lsGet(PREF_KEY + "-sound") !== "off";
+function popSound() {
+  if (!soundOn()) return;
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    popAudio = popAudio || new AC(); const ac = popAudio; if (ac.state === "suspended") ac.resume();
+    const t = ac.currentTime;
+    [[880, 0], [1318.5, 0.07]].forEach(([f, d]) => {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = "sine"; o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t + d); g.gain.exponentialRampToValueAtTime(0.05, t + d + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.32);
+      o.connect(g).connect(ac.destination); o.start(t + d); o.stop(t + d + 0.34);
+    });
+  } catch (e) { /* no sound available */ }
+}
+function popOutfit() { if (!popCtx?.oid) return null; return state.outfits.find(o => o.id === popCtx.oid) || ideas.find(o => o.id === popCtx.oid) || null; }
+/* a swap has to pass the same rules as outfit ideas, at the outfit's own occasion */
+function swapOK(items, o) {
+  if (!commonTags(items).length) return false;
+  const occ = o.occasion || "Everyday", top = (OCC_RANGE[occ] || [0, 2])[1];
+  try { if (items.some(q => formal(q) > top)) return false; return wearable(items, { occ, anchor: null }); } catch (e) { return true; }
+}
+/* accessories only swap within their own kind: legwear, hats, scarves, or the same type */
+const accSlot = p => TYPE[p.type]?.legwear ? "legs" : HEADWEAR.has(p.type) ? "head" : ["scarf", "bandana", "stole"].includes(p.type) ? "neck" : p.type;
+function swapsFor(p, o) {
+  if (!o) return [];
+  const others = o.items.filter(id => id !== p.id);
+  const layer = !!TYPE[p.type]?.layer;
+  const key = ids => [...ids].sort().join(",");
+  return state.pieces
+    .filter(q => q.id !== p.id && !o.items.includes(q.id) && CORE(q) === CORE(p) && (CORE(p) !== "Tops" || !!TYPE[q.type]?.layer === layer) && (CORE(p) !== "Accessories" || accSlot(q) === accSlot(p)))
+    .map(q => { const ids = o.items.map(id => id === p.id ? q.id : id); return { q, ids, saved: state.outfits.find(x => key(x.items) === key(ids)) }; })
+    .filter(s => s.saved || swapOK(piecesOf(s.ids), o))
+    .sort((a, b) => (!!b.saved - !!a.saved) || (owned(b.q) - owned(a.q)))
+    .slice(0, 6);
+}
+function renderPop() {
+  const p = state.pieces.find(x => x.id === popCtx?.pid); if (!p) return closePop();
+  const o = popOutfit(), n = state.outfits.filter(x => x.items.includes(p.id)).length;
+  const tags = tagsOf(p); const wt = wearText(p);
+  const swaps = swapsFor(p, o);
+  const look = ids => lookHTML(piecesOf(ids), true).replace(/role="img" aria-label="[^"]*"/, 'aria-hidden="true"').replace(/ data-tp="[^"]*"/g, "");
+  let root = $("#popRoot"); if (!root) { root = document.createElement("div"); root.id = "popRoot"; document.body.appendChild(root); }
+  root.innerHTML = `<div class="pp-scrim" data-pp="close"><div class="pp" role="dialog" aria-modal="true" aria-label="${esc(p.name)}">
+    <div class="pp-head"><div><div class="pp-kicker">${esc(CORE(p))} · ${owned(p) ? "Owned" : "Wishlist"}</div><h2>${esc(p.name)}</h2></div><button class="pp-x" data-pp="close">Close</button></div>
+    <div class="pp-art">${drawPiece(p)}</div>
+    <p class="pp-sub">${esc(pieceLabel(p))}${wt ? " · " + esc(wt) : ""}</p>
+    ${tags.length ? `<p class="pp-sub">${esc(tags.join(" · "))}</p>` : ""}
+    ${p.notes ? `<p class="pp-note">${esc(p.notes)}</p>` : ""}
+    <div class="pp-actions"><button class="pp-btn main" data-pp="outfits">${n ? `In ${n} outfit${n === 1 ? "" : "s"} · See all` : "Find outfits with it"}</button><button class="pp-btn" data-pp="edit">Edit piece</button></div>
+    ${o ? `<div class="pp-swaps"><h3>Swap this piece</h3>${swaps.length ? `<div class="pp-grid">${swaps.map(s => `<div class="pp-swap"><div class="pp-mini">${look(s.ids)}</div><div class="pp-swapname">${esc(s.q.name)} <span>${esc(s.q.fill?.kind === "solid" ? pieceLabel(s.q) : (PATTERNS.find(x => x.id === s.q.fill?.kind)?.label || pieceLabel(s.q)))}${owned(s.q) ? "" : " · wishlist"}</span></div>${s.saved ? `<button class="pp-btn small" data-pp="open" data-oid="${s.saved.id}">Outfit ${s.saved.num}</button>` : `<button class="pp-btn small" data-pp="save" data-q="${s.q.id}">Save it</button>`}</div>`).join("")}</div>` : `<p class="pp-sub">Nothing else in your closet swaps in here.</p>`}</div>` : ""}
+  </div></div>`;
+}
+function openPop(pid, oid) { popCtx = { pid, oid }; renderPop(); popSound(); requestAnimationFrame(() => $("#popRoot .pp-x")?.focus()); }
+function closePop() { popCtx = null; const r = $("#popRoot"); if (r) r.innerHTML = ""; }
+document.addEventListener("click", e => {
+  const inPop = e.target.closest && e.target.closest("#popRoot");
+  if (inPop) {
+    e.stopPropagation();
+    const b = e.target.closest("[data-pp]"); if (!b) return;
+    const act = b.dataset.pp;
+    if (act === "close") { if (b.classList.contains("pp-scrim") && e.target !== b) return; return closePop(); }
+    const p = state.pieces.find(x => x.id === popCtx?.pid); if (!p) return closePop();
+    if (act === "edit") { closePop(); return openPieceEditor(p.id); }
+    if (act === "outfits") { closePop(); closeSheet(); anchorId = p.id; outFilter = "All"; ideas = []; genMsg = ""; show("outfits"); renderOutfits(); try { window.scrollTo({ top: 0 }); } catch (err) {} return; }
+    if (act === "open") { closePop(); return openOutfit(b.dataset.oid); }
+    if (act === "save") {
+      const o = popOutfit(), s = o && swapsFor(p, o).find(x => x.q.id === b.dataset.q); if (!s || s.saved) return renderPop();
+      const n = { id: uidGen(), items: s.ids, occasion: o.occasion || "", comfy: !!o.comfy, note: "" };
+      for (const m of ["seasons", "weather"]) n[m] = commonTags(piecesOf(s.ids), m);
+      withUndo("Saved as a new outfit", () => { n.num = state.nextNum++; state.outfits.push(n); });
+      return renderPop();
+    }
+    return;
+  }
+  const hit = e.target.closest && e.target.closest("[data-tp]");
+  if (!hit || hit.closest("button") || pickerDraft) return;
+  const card = hit.closest("[data-oid]");
+  openPop(hit.getAttribute("data-tp"), card ? card.dataset.oid : null);
+}, true);
+document.addEventListener("keydown", e => { if (e.key === "Escape" && popCtx) { e.stopPropagation(); closePop(); } }, true);
+
 /* ---------- events ---------- */
 /* keep keyboard focus in a sensible place when parts of the page are redrawn */
 const cssEsc = v => window.CSS && CSS.escape ? CSS.escape(v) : String(v).replace(/["\\\]\[#.:]/g, "\\$&");
@@ -2323,6 +2445,8 @@ async function onClick(e) {
   if (ds.ofilter) { outFilter = ds.ofilter; outLimit = 24; return renderOutfits(); }
   if (ds.note) return openNoteEditor(ds.note);
   if (ds.act === "save-note") { const o = state.outfits.find(x => x.id === noteTarget); if (o) { o.note = $("#noteText").value.trim(); save(); } renderOutfits(); openOutfit(noteTarget); return toast("Note saved"); }
+  if (ds.themePick) { if (ds.themePick === "device") lsDel(PREF_KEY + "-theme"); else lsSet(PREF_KEY + "-theme", ds.themePick); applyTheme(); return openSettings(); }
+  if (ds.act === "toggle-sound") { lsSet(PREF_KEY + "-sound", soundOn() ? "off" : "on"); if (soundOn()) popSound(); return openSettings(); }
   if (ds.act === "new-outfit") return openPicker();
   if (pickerDraft && $("#pickNote")) pickerDraft.note = $("#pickNote").value;
   if (ds.pickp) { const d = pickerDraft; d.items = d.items.includes(ds.pickp) ? d.items.filter(x => x !== ds.pickp) : [...d.items, ds.pickp]; return renderPicker(); }
