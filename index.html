@@ -260,6 +260,28 @@ details.fold > summary .small { font-weight: 400; }
 .pp-swapname { font-size: 13px; font-weight: 600; }
 .pp-swapname span { display: block; font-weight: 400; color: var(--pp-muted); }
 .flatlay [data-tp] { cursor: pointer; }
+/* selecting several pieces */
+#pieceList .card { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.card.picked { position: relative; outline: 3px solid var(--accent); outline-offset: -3px; }
+.card.picked::after { content: "✓"; position: absolute; top: 8px; right: 8px; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 15px; }
+.selhint { margin: 0 0 8px; }
+#pickBar { flex-wrap: wrap; position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 50; width: min(560px, calc(100% - 20px)); display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--surface); color: var(--fg); border: 1px solid var(--rule); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.2); }
+#pickBar[hidden] { display: none; }
+#pickBar .btn[disabled] { opacity: .45; pointer-events: none; }
+.pb-minis { display: flex; flex: none; }
+.pb-mini { width: 32px; height: 32px; margin-left: -10px; background: var(--bg); border: 1px solid var(--rule); border-radius: 50%; display: grid; place-items: center; overflow: hidden; }
+.pb-mini:first-child { margin-left: 0; }
+.pb-mini svg { width: 26px; height: 26px; }
+.pb-text { flex: 1; min-width: 0; display: grid; gap: 2px; font-size: 14px; line-height: 1.25; }
+.pb-text b { white-space: nowrap; }
+.pb-why { flex-basis: 100%; margin: 2px 2px 0; font-size: 13px; line-height: 1.35; color: var(--muted); }
+body.has-pickbar { padding-bottom: 96px; }
+.anchorbar.multi { flex-wrap: wrap; }
+.anchorbar.multi p { flex-basis: 100%; margin: 0; }
+.pickchips { display: flex; flex-wrap: wrap; gap: 8px; }
+.pickchip { position: relative; width: 52px; height: 52px; padding: 4px; border: 1px solid var(--rule); background: var(--surface); border-radius: 10px; cursor: pointer; }
+.pickchip svg { width: 100%; height: 100%; }
+.pickchip span { position: absolute; top: -7px; right: -7px; width: 20px; height: 20px; border-radius: 50%; background: var(--fg); color: var(--bg); font-size: 13px; line-height: 1; display: grid; place-items: center; }
 </style>
 </head>
 <body>
@@ -829,7 +851,7 @@ function show(v) {
   for (const x of ["palette", "pieces", "outfits"]) { $("#view-" + x).hidden = x !== v; const t = $("#tab-" + x); t.setAttribute("aria-selected", String(x === v)); t.tabIndex = x === v ? 0 : -1; }
   lsSet("capsule-builder-view", v);
 }
-function renderAll() { renderPalette(); renderPieces(); renderOutfits(); }
+function renderAll() { renderPalette(); renderPieces(); renderOutfits(); if (typeof renderPickBar === "function") renderPickBar(); }
 const roleOf = hex => state.palette.find(c => c.hex.toLowerCase() === String(hex).toLowerCase())?.role;
 const nameOf = hex => state.palette.find(c => c.hex.toLowerCase() === String(hex).toLowerCase())?.name || autoName(hex);
 
@@ -1324,9 +1346,9 @@ function renderPieces() {
   const wishCount = state.pieces.filter(p => !owned(p)).length;
   v.innerHTML = `
   <section class="block">
-    <div class="row" style="justify-content:space-between"><h2>Pieces${state.pieces.length ? ` <span class="small muted">${state.pieces.length}${wishCount ? ` · ${wishCount} on wishlist` : ""}</span>` : ""}</h2><div class="row">${state.pieces.length ? `<button class="btn quiet" data-act="open-starters">Starter sets</button>` : ""}<button class="btn primary" data-act="new-piece">Add a piece</button></div></div>
+    <div class="row" style="justify-content:space-between"><h2>Pieces${state.pieces.length ? ` <span class="small muted">${state.pieces.length}${wishCount ? ` · ${wishCount} on wishlist` : ""}</span>` : ""}</h2><div class="row">${state.pieces.length ? `<button class="btn quiet" data-act="select-mode" aria-pressed="${selecting}">${selecting ? "Done" : "Select"}</button><button class="btn quiet" data-act="open-starters">Starter sets</button>` : ""}<button class="btn primary" data-act="new-piece">Add a piece</button></div></div>
     ${!state.palette.length ? `<p class="small muted">Tip: set up a palette first, so its colors are one tap away. You can also pick any custom color.</p>` : ""}
-    ${state.pieces.length ? `${tipsHTML()}<div class="toolbar">
+    ${state.pieces.length ? `${selecting ? `<p class="small muted selhint">Tap pieces to pick them, then tap Make outfits.</p>` : `<p class="small muted selhint">To make outfits with several pieces, press and hold a piece, or tap Select.</p>`}${tipsHTML()}<div class="toolbar">
         <input type="search" id="pieceSearch" placeholder="Search by name, color, pattern or note" value="${esc(pieceSearch)}" aria-label="Search pieces">
         <div class="chips">${["All", ...cats].map(c => `<button class="chip" data-pcat="${c}" aria-pressed="${c === pieceCat}">${c}</button>`).join("")}</div>
         <div class="chips">${[["All", "Everything"], ["Owned", "In my closet"], ["Wishlist", "Wishlist"]].map(([k, l]) => `<button class="chip" data-closet="${k}" aria-pressed="${k === closetFilter}">${l}</button>`).join("")}</div>
@@ -1351,7 +1373,7 @@ function renderPieceList() {
     return [p.name, TYPE[p.type]?.label, pieceLabel(p), p.notes, wearText(p), tagSummary(p), occSummary(p)].join(" ").toLowerCase().includes(q);
   });
   const cats = CATS.filter(c => list.some(p => TYPE[p.type]?.cat === c));
-  el.innerHTML = list.length ? cats.map(c => { const l = list.filter(p => TYPE[p.type]?.cat === c); return `<h3 class="cat-head">${c}<small>${l.length}</small></h3><div class="grid">${l.map(p => `<button class="card${owned(p) ? "" : " wish"}" data-piece="${p.id}"><div class="art">${showPhotos && p.photo && IMAGES[p.photo] ? `<img class="photo" src="${IMAGES[p.photo]}" alt="">` : drawPiece(p)}${!showPhotos && p.photo && IMAGES[p.photo] ? `<img class="refbadge" src="${IMAGES[p.photo]}" alt="">` : ""}</div><div>${owned(p) ? "" : `<div class="badge">Wishlist</div>`}<div class="name">${esc(p.name)}</div><div class="sub">${esc(pieceLabel(p))}</div>${wearText(p) ? `<div class="wearline">${esc(wearText(p))}</div>` : ""}<div class="sub">${esc(tagSummary(p))}${occSummary(p) ? " · " + esc(occSummary(p)) : ""}</div>${p.notes ? `<div class="sub"><i>${esc(p.notes)}</i></div>` : ""}</div></button>`).join("")}</div>`; }).join("")
+  el.innerHTML = list.length ? cats.map(c => { const l = list.filter(p => TYPE[p.type]?.cat === c); return `<h3 class="cat-head">${c}<small>${l.length}</small></h3><div class="grid">${l.map(p => `<button class="card${owned(p) ? "" : " wish"}${sel.has(p.id) ? " picked" : ""}" data-piece="${p.id}"${selecting ? ` aria-pressed="${sel.has(p.id)}"` : ""}><div class="art">${showPhotos && p.photo && IMAGES[p.photo] ? `<img class="photo" src="${IMAGES[p.photo]}" alt="">` : drawPiece(p)}${!showPhotos && p.photo && IMAGES[p.photo] ? `<img class="refbadge" src="${IMAGES[p.photo]}" alt="">` : ""}</div><div>${owned(p) ? "" : `<div class="badge">Wishlist</div>`}<div class="name">${esc(p.name)}</div><div class="sub">${esc(pieceLabel(p))}</div>${wearText(p) ? `<div class="wearline">${esc(wearText(p))}</div>` : ""}<div class="sub">${esc(tagSummary(p))}${occSummary(p) ? " · " + esc(occSummary(p)) : ""}</div>${p.notes ? `<div class="sub"><i>${esc(p.notes)}</i></div>` : ""}</div></button>`).join("")}</div>`; }).join("")
     : `<p class="small muted">No pieces match. Try another search or filter.</p>`;
 }
 
@@ -1500,14 +1522,15 @@ function mixOK(items) {
   return true;
 }
 /* two ideas count as the same outfit when the clothes match, even if the bag or jewelry differs */
-const clothesKey = (ids, anchor) => ids.map(id => state.pieces.find(p => p.id === id)).filter(p => p && (!["Bags", "Accessories"].includes(CORE(p)) || p === anchor)).map(p => p.id).sort().join("|");
+const isPicked = (ctx, p) => ctx.anchor === p || (ctx.picks || []).includes(p);
+const clothesKey = (ids, anchor) => ids.map(id => state.pieces.find(p => p.id === id)).filter(p => p && (!["Bags", "Accessories"].includes(CORE(p)) || (Array.isArray(anchor) ? anchor.includes(p) : p === anchor))).map(p => p.id).sort().join("|");
 let shownIdeas = new Set(), shownFor = "";
 /* hard rules: combinations that don't work no matter what */
 function wearable(items, ctx) {
   const types = new Set(items.map(p => p.type));
   if (!commonTags(items).length) return false;
   if (items.filter(p => ["sweatervest", "vest", "waistcoat"].includes(p.type)).length > 1) return false;
-  if (ctx.occ === "Lounge" && items.some(p => ctx.anchor !== p && (CORE(p) === "Bags" || (CORE(p) === "Outerwear" && !ctx.cold)))) return false;
+  if (ctx.occ === "Lounge" && items.some(p => !isPicked(ctx, p) && (CORE(p) === "Bags" || (CORE(p) === "Outerwear" && !ctx.cold)))) return false;
   const top = items.find(p => CORE(p) === "Tops" && !TYPE[p.type].layer);
   const layer = items.find(p => CORE(p) === "Tops" && TYPE[p.type].layer);
   if (layer && top && BULKY_TOPS.has(top.type)) return false;
@@ -1525,8 +1548,8 @@ function wearable(items, ctx) {
   if (range) {
     const low = range[0], high = range[1];
     const up = ["Lounge", "Active"].includes(ctx.occ) ? .5 : 1;
-    for (const p of items) { if (ctx.anchor === p) continue; const f = formal(p); if (f < low - 1 || f > high + up) return false; }
-    if (ctx.occ === "Dressed up" && shoe && SPORTY_FEET.has(shoe.type) && ctx.anchor !== shoe) return false;
+    for (const p of items) { if (isPicked(ctx, p)) continue; const f = formal(p); if (f < low - 1 || f > high + up) return false; }
+    if (ctx.occ === "Dressed up" && shoe && SPORTY_FEET.has(shoe.type) && !isPicked(ctx, shoe)) return false;
     /* the outfit as a whole has to read right for the occasion, not just each piece */
     const clothes = items.filter(p => !["Accessories", "Bags"].includes(CORE(p))), mean = clothes.reduce((a, p) => a + formal(p), 0) / (clothes.length || 1);
     if (mean < low - .5 || mean > high + .5) return false;
@@ -1566,8 +1589,10 @@ function scoreIdea(items, ctx, used) {
 }
 function generate(n = 6) {
   const tag = outSeason;
-  const A = anchorPiece(), aSlot = A ? anchorSlot(A) : null;
-  const pool = state.pieces.filter(p => p !== A && okTag(p, tag) && (!ownedOnly || owned(p)));
+  const PK = pickedPieces(), A = PK.length === 1 ? PK[0] : null;
+  if (pickConflict(PK)) return [];
+  const F = { acc: [] }; for (const p of PK) { const s = anchorSlot(p); if (s === "acc") F.acc.push(p); else F[s] = p; }
+  const pool = state.pieces.filter(p => !PK.includes(p) && okTag(p, tag) && (!ownedOnly || owned(p)));
   const by = c => pool.filter(p => CORE(p) === c);
   const occF = arr => outOcc === "Any" ? arr : arr.filter(p => (p.occasions || []).includes(outOcc));
   const softOcc = arr => { const m = occF(arr); return m.length ? m : arr; };
@@ -1581,38 +1606,38 @@ function generate(n = 6) {
   if (rng && tops.length < 3) { const extra = by("Tops").filter(p => !TYPE[p.type].layer && !tops.includes(p) && formal(p) >= rng[0] - .5 && formal(p) <= rng[1]); tops = [...tops, ...comfyF(extra)]; }
   if (rng && dresses.length < 2) { const extra = by("Dresses").filter(p => !dresses.includes(p) && formal(p) >= rng[0] - .5 && formal(p) <= rng[1]); dresses = [...dresses, ...comfyF(extra)]; }
   if (outOcc === "Active") { const c = bottoms.filter(p => p.comfy && !SKIRTS.has(p.type)); if (c.length) bottoms = c; }
-  if (aSlot === "top") { tops = [A]; if (!bottoms.length) bottoms = comfyF(by("Bottoms")); }
-  if (aSlot === "bottom") { bottoms = [A]; if (!tops.length) tops = comfyF(by("Tops").filter(p => !TYPE[p.type].layer)); }
-  if (aSlot === "dress") { dresses = [A]; if (TYPE[A.type].layer && !tops.length) tops = by("Tops").filter(p => !TYPE[p.type].layer); }
-  if (aSlot === "shoes") shoes = [A];
+  if (F.top) { tops = [F.top]; if (!bottoms.length) bottoms = comfyF(by("Bottoms")); }
+  if (F.bottom) { bottoms = [F.bottom]; if (!tops.length) tops = comfyF(by("Tops").filter(p => !TYPE[p.type].layer)); }
+  if (F.dress) { dresses = [F.dress]; if (TYPE[F.dress.type].layer && !tops.length) tops = by("Tops").filter(p => !TYPE[p.type].layer); }
+  if (F.shoes) shoes = [F.shoes];
   const any = a => a[Math.floor(Math.random() * a.length)];
   /* skipped ideas are remembered until the filters change */
-  const sig = [tag, outOcc, comfyOnly, ownedOnly, A?.id || "", tagMode()].join("/");
+  const sig = [tag, outOcc, comfyOnly, ownedOnly, PK.map(p => p.id).join("+"), tagMode()].join("/");
   if (sig !== shownFor) { shownIdeas = new Set(); shownFor = sig; }
-  const seen = new Set([...state.outfits.map(o => clothesKey(o.items, A)), ...ideas.map(o => clothesKey(o.items, A)), ...shownIdeas]);
+  const seen = new Set([...state.outfits.map(o => clothesKey(o.items, PK)), ...ideas.map(o => clothesKey(o.items, PK)), ...shownIdeas]);
   const openShirts = softOcc(by("Tops").filter(canOpenLayer));
   const cold = tag === "Winter" || tag === "Cold", warm = tag === "Summer" || tag === "Hot", rainy = tag === "Rainy", ac = tag === "Chilly indoors";
   const dressy = outOcc === "Work" || outOcc === "Dressed up";
   const coldCoats = by("Outerwear").filter(o => TYPE[o.type].w >= 2);
-  const ctx = { cold, warm, rainy, occ: outOcc, anchor: A, coats: cold && coldCoats.length > 0 };
+  const ctx = { cold, warm, rainy, occ: outOcc, anchor: A, picks: PK, coats: cold && coldCoats.length > 0 };
   const cands = [];
   for (let tries = 0; tries < 900 && cands.length < 160; tries++) {
     const items = [];
     let useDress;
-    if (aSlot === "dress") useDress = true;
-    else if (aSlot === "top") useDress = !bottoms.length && dresses.some(d => TYPE[d.type].layer);
-    else if (aSlot === "bottom") useDress = false;
+    if (F.dress) useDress = true;
+    else if (F.bottom) useDress = false;
+    else if (F.top) useDress = !bottoms.length && dresses.some(d => TYPE[d.type].layer);
     else useDress = dresses.length && (!(tops.length && bottoms.length) || Math.random() < 0.3);
     if (useDress) {
-      const pool2 = aSlot === "top" ? dresses.filter(d => TYPE[d.type].layer) : dresses;
+      const pool2 = F.top ? dresses.filter(d => TYPE[d.type].layer) : dresses;
       if (!pool2.length) break;
-      const d = aSlot === "dress" ? A : any(pool2); items.push(d);
-      if (TYPE[d.type].layer && tops.length) items.unshift(aSlot === "top" ? A : any(tops));
+      const d = F.dress || any(pool2); items.push(d);
+      if (TYPE[d.type].layer && tops.length) items.unshift(F.top || any(tops));
     } else { if (!tops.length || !bottoms.length) break; items.push(any(tops), any(bottoms)); }
-    if (aSlot === "layer") items.push(A);
+    if (F.layer) items.push(F.layer);
     else if (!useDress && openShirts.length && LAYER_BASES.has(items[0].type) && Math.random() < .25) { const sh = any(openShirts.filter(x => x !== items[0])); if (sh) items.splice(1, 0, sh); }
     else if (!warm && layers.length && Math.random() < (ac ? 0.7 : cold ? 0.45 : 0.35)) { const l = any(layers); if (!items.includes(l)) items.push(l); }
-    if (aSlot === "outer") items.push(A);
+    if (F.outer) items.push(F.outer);
     else if (outers.length || (cold && coldCoats.length)) {
       const fitsWeather = o => cold ? TYPE[o.type].w >= 2 : warm ? TYPE[o.type].w <= 1 && !TYPE[o.type].layer : ac ? TYPE[o.type].w <= 1 : TYPE[o.type].w <= 2;
       /* a warm coat goes over anything, so in the cold any coat will do when none is tagged for the occasion */
@@ -1622,12 +1647,12 @@ function generate(n = 6) {
       if (fitting.length && Math.random() < chance) items.push(any(fitting));
     }
     if (!shoes.length) break;
-    let shoeChoices = aSlot === "shoes" ? shoes : shoes.filter(s => !(warm && TYPE[s.type].w >= 2) && !(cold && s.type === "sandals"));
-    if (rainy && aSlot !== "shoes") { const dry = shoeChoices.filter(s => !NOT_FOR_RAIN.has(s.type)); const gear = dry.filter(s => RAIN_GEAR.has(s.type)); shoeChoices = gear.length && Math.random() < .7 ? gear : dry.length ? dry : shoeChoices; }
+    let shoeChoices = F.shoes ? shoes : shoes.filter(s => !(warm && TYPE[s.type].w >= 2) && !(cold && s.type === "sandals"));
+    if (rainy && !F.shoes) { const dry = shoeChoices.filter(s => !NOT_FOR_RAIN.has(s.type)); const gear = dry.filter(s => RAIN_GEAR.has(s.type)); shoeChoices = gear.length && Math.random() < .7 ? gear : dry.length ? dry : shoeChoices; }
     items.push(any(shoeChoices.length ? shoeChoices : shoes));
-    if (aSlot === "bag") items.push(A);
+    if (F.bag) items.push(F.bag);
     else if (bags.length && Math.random() < 0.85) { const b = rainy ? bags.filter(x => !NOT_FOR_RAIN.has(x.type)) : bags; if (b.length) items.push(any(b)); }
-    if (aSlot === "acc") items.push(A);
+    if (F.acc.length) items.push(...F.acc);
     else {
       const umbrella = rainy && accs.find(a => a.type === "umbrella");
       if (umbrella) items.push(umbrella);
@@ -1638,7 +1663,7 @@ function generate(n = 6) {
     }
     if (!mixOK(items)) continue;
     if (!wearable(items, ctx)) continue;
-    const k = clothesKey(items.map(p => p.id), A);
+    const k = clothesKey(items.map(p => p.id), PK);
     if (seen.has(k)) continue;
     seen.add(k);
     cands.push(items);
@@ -1649,8 +1674,8 @@ function generate(n = 6) {
     let best = 0, bestS = -Infinity;
     cands.forEach((c, i) => { const s = scoreIdea(c, ctx, used); if (s > bestS) { bestS = s; best = i; } });
     const items = cands.splice(best, 1)[0];
-    shownIdeas.add(clothesKey(items.map(p => p.id), A));
-    for (const p of items) if (p !== A) used.set(p.id, (used.get(p.id) || 0) + 1);
+    shownIdeas.add(clothesKey(items.map(p => p.id), PK));
+    for (const p of items) if (!PK.includes(p)) used.set(p.id, (used.get(p.id) || 0) + 1);
     const o = { id: uidGen(), items: items.map(p => p.id), occasion: outOcc === "Any" ? "" : outOcc, comfy: comfyOnly };
     for (const m of ["seasons", "weather"]) o[m] = tag !== "Any" && m === tagMode() ? [tag] : commonTags(items, m);
     out.push(o);
@@ -1839,8 +1864,22 @@ function typeGridHTML() {
 }
 
 /* build around one piece */
-let anchorId = null;
-const anchorPiece = () => anchorId ? state.pieces.find(p => p.id === anchorId) || null : null;
+/* picks: the pieces outfit ideas are built around (one or several); sel: pieces being selected on the Pieces tab */
+let picks = [], sel = new Set(), selecting = false;
+const pickedPieces = () => picks.map(id => state.pieces.find(p => p.id === id)).filter(Boolean);
+const anchorPiece = () => { const P = pickedPieces(); return P.length === 1 ? P[0] : null; };
+const SLOT_WORD = { top: "tops", layer: "layering pieces", bottom: "bottoms", dress: "dresses", outer: "outer layers", shoes: "shoes", bag: "bags" };
+/* why these pieces can't share one outfit, or "" if they can */
+function pickConflict(P) {
+  const by = {};
+  for (const p of P) { const s = anchorSlot(p); if (s !== "acc") (by[s] = by[s] || []).push(p); }
+  for (const [s, arr] of Object.entries(by)) if (arr.length > 1) return `${arr[0].name} and ${arr[1].name} are both ${SLOT_WORD[s]}, so they can't go in one outfit.`;
+  const d = by.dress && by.dress[0];
+  if (d && by.bottom) return `${d.name} already covers the bottom half, so it can't go with ${by.bottom[0].name}.`;
+  if (d && by.top && !TYPE[d.type].layer) return `${d.name} already covers the top half, so it can't go with ${by.top[0].name}.`;
+  if (P.length > 1 && !commonTags(P).length) return `These pieces don't share a ${tagMode() === "weather" ? "weather" : "season"}, so they can't make one outfit.`;
+  return "";
+}
 function anchorSlot(p) { const c = CORE(p); return c === "Tops" ? (TYPE[p.type].layer ? "layer" : "top") : c === "Bottoms" ? "bottom" : c === "Dresses" ? "dress" : c === "Outerwear" ? "outer" : c === "Shoes" ? "shoes" : c === "Bags" ? "bag" : "acc"; }
 
 function outfitTags(o, items) { const arr = Array.isArray(o[tagMode()]) ? o[tagMode()] : commonTags(items); return arr.length === TAGS().length ? [allTagsLabel()] : arr.length ? arr : [tagMode() === "weather" ? "Mixed weather" : "Mixed seasons"]; }
@@ -1885,13 +1924,13 @@ function renderOutfits() {
   const v = $("#view-outfits");
   const enough = state.pieces.some(p => CORE(p) === "Shoes") && (state.pieces.some(p => CORE(p) === "Dresses") || (state.pieces.some(p => CORE(p) === "Tops" && !TYPE[p.type].layer) && state.pieces.some(p => CORE(p) === "Bottoms")));
   if (outFilter !== "All" && !["Comfy", "Favorites", "With photos", ...OCCASIONS, ...TAGS()].includes(outFilter)) outFilter = "All";
-  const A = anchorPiece(); if (!A) anchorId = null;
-  const saved = state.outfits.filter(o => savedMatches(o, outFilter) && (!A || o.items.includes(A.id)));
+  const PK = pickedPieces(); picks = PK.map(p => p.id); const A = PK.length === 1 ? PK[0] : null;
+  const saved = state.outfits.filter(o => savedMatches(o, outFilter) && PK.every(p => o.items.includes(p.id)));
   const filters = ["All", ...TAGS(), ...OCCASIONS.filter(x => state.outfits.some(o => o.occasion === x)), ...(state.outfits.some(o => o.comfy) ? ["Comfy"] : []), ...(state.outfits.some(o => o.fav) ? ["Favorites"] : []), ...(state.outfits.some(hasPhotos) ? ["With photos"] : [])];
   v.innerHTML = `
   <section class="block">
     <h2>Outfit ideas</h2>
-    ${A ? `<div class="anchorbar"><div class="mini">${drawPiece(A)}</div><p>Ideas and saved outfits built around <b>${esc(A.name)}</b></p><button class="btn quiet" data-act="clear-anchor">Show everything</button></div>` : ""}
+    ${A ? `<div class="anchorbar"><div class="mini">${drawPiece(A)}</div><p>Ideas and saved outfits built around <b>${esc(A.name)}</b></p><button class="btn quiet" data-act="clear-anchor">Show everything</button></div>` : PK.length ? `<div class="anchorbar multi"><div class="pickchips">${PK.map(p => `<button class="pickchip" data-unpick="${p.id}" aria-label="Remove ${esc(p.name)}" title="Remove ${esc(p.name)}">${drawPiece(p)}<span aria-hidden="true">×</span></button>`).join("")}</div><p>Ideas and saved outfits with <b>${esc(PK.map(p => p.name).join(", "))}</b></p><button class="btn quiet" data-act="clear-anchor">Show everything</button></div>` : ""}
     ${enough ? `<div class="panel">
       <div class="slot"><span>${tagMode() === "weather" ? "Weather" : "Season"}</span><div class="chips">${["Any", ...TAGS()].map(s => `<button class="chip" data-oseason="${s}" aria-pressed="${s === outSeason}">${s}</button>`).join("")}</div></div>
       <div class="slot"><span>Occasion</span><div class="chips">${["Any", ...OCCASIONS].map(s => `<button class="chip" data-oocc="${s}" aria-pressed="${s === outOcc}">${s}</button>`).join("")}</div></div>
@@ -2227,7 +2266,7 @@ function renderPop() {
     <p class="pp-sub">${esc(pieceLabel(p))}${wt ? " · " + esc(wt) : ""}</p>
     ${tags.length ? `<p class="pp-sub">${esc(tags.join(" · "))}</p>` : ""}
     ${p.notes ? `<p class="pp-note">${esc(p.notes)}</p>` : ""}
-    <div class="pp-actions"><button class="pp-btn main" data-pp="outfits">${n ? `In ${n} outfit${n === 1 ? "" : "s"} · See all` : "Find outfits with it"}</button><button class="pp-btn" data-pp="edit">Edit piece</button></div>
+    <div class="pp-actions"><button class="pp-btn main" data-pp="outfits">${n ? `In ${n} outfit${n === 1 ? "" : "s"} · See all` : "Find outfits with it"}</button><button class="pp-btn" data-pp="select" aria-pressed="${sel.has(p.id)}">${sel.has(p.id) ? "Selected ✓" : "Add to selection"}</button><button class="pp-btn" data-pp="edit">Edit piece</button></div>
     ${o ? `<div class="pp-swaps"><h3>Swap this piece</h3>${swaps.length ? `<div class="pp-grid">${swaps.map(s => `<div class="pp-swap"><div class="pp-mini">${look(s.ids)}</div><div class="pp-swapname">${esc(s.q.name)} <span>${esc(s.q.fill?.kind === "solid" ? pieceLabel(s.q) : (PATTERNS.find(x => x.id === s.q.fill?.kind)?.label || pieceLabel(s.q)))}${owned(s.q) ? "" : " · wishlist"}</span></div>${s.saved ? `<button class="pp-btn small" data-pp="open" data-oid="${s.saved.id}">Outfit ${s.saved.num}</button>` : `<button class="pp-btn small" data-pp="save" data-q="${s.q.id}">Save it</button>`}</div>`).join("")}</div>` : `<p class="pp-sub">Nothing else in your closet swaps in here.</p>`}</div>` : ""}
   </div></div>`;
 }
@@ -2242,7 +2281,8 @@ document.addEventListener("click", e => {
     if (act === "close") { if (b.classList.contains("pp-scrim") && e.target !== b) return; return closePop(); }
     const p = state.pieces.find(x => x.id === popCtx?.pid); if (!p) return closePop();
     if (act === "edit") { closePop(); return openPieceEditor(p.id); }
-    if (act === "outfits") { closePop(); closeSheet(); anchorId = p.id; outFilter = "All"; ideas = []; genMsg = ""; show("outfits"); renderOutfits(); try { window.scrollTo({ top: 0 }); } catch (err) {} return; }
+    if (act === "select") { if (sel.has(p.id)) sel.delete(p.id); else sel.add(p.id); renderPickBar(); renderPieceList(); return renderPop(); }
+    if (act === "outfits") { closePop(); closeSheet(); picks = [p.id]; outFilter = "All"; ideas = []; genMsg = ""; show("outfits"); renderOutfits(); try { window.scrollTo({ top: 0 }); } catch (err) {} return; }
     if (act === "open") { closePop(); return openOutfit(b.dataset.oid); }
     if (act === "save") {
       const o = popOutfit(), s = o && swapsFor(p, o).find(x => x.q.id === b.dataset.q); if (!s || s.saved) return renderPop();
@@ -2259,6 +2299,48 @@ document.addEventListener("click", e => {
   openPop(hit.getAttribute("data-tp"), card ? card.dataset.oid : null);
 }, true);
 document.addEventListener("keydown", e => { if (e.key === "Escape" && popCtx) { e.stopPropagation(); closePop(); } }, true);
+
+/* ---------- several pieces at once: select, then make outfits with all of them ---------- */
+function noPickIdeasMsg() { return "No outfits work with all of these together under these filters. Try Any season, turn off Comfy day or Only what I own, or remove one of the pieces."; }
+function toggleSel(id) { if (sel.has(id)) sel.delete(id); else sel.add(id); renderPickBar(); renderPieceList(); }
+function renderPickBar() {
+  let bar = $("#pickBar"); if (!bar) { bar = document.createElement("div"); bar.id = "pickBar"; bar.setAttribute("role", "region"); bar.setAttribute("aria-label", "Selected pieces"); document.body.appendChild(bar); }
+  for (const id of [...sel]) if (!state.pieces.some(p => p.id === id)) sel.delete(id);
+  document.body.classList.toggle("has-pickbar", sel.size > 0);
+  if (!sel.size) { bar.hidden = true; bar.innerHTML = ""; return; }
+  const P = [...sel].map(id => state.pieces.find(p => p.id === id));
+  const why = pickConflict(P);
+  bar.hidden = false;
+  bar.innerHTML = `<div class="pb-minis" aria-hidden="true">${P.slice(0, 4).map(p => `<span class="pb-mini">${drawPiece(p)}</span>`).join("")}</div>
+    <div class="pb-text"><b>${P.length} selected</b></div>
+    <button class="btn quiet" data-act="clear-sel">Clear</button><button class="btn primary" data-act="make-picks"${why ? " disabled" : ""}>Make outfits</button>${why ? `<p class="pb-why">${esc(why)}</p>` : ""}`;
+}
+function makeFromSelection() {
+  const P = [...sel].map(id => state.pieces.find(p => p.id === id)).filter(Boolean); if (!P.length) return;
+  const why = pickConflict(P); if (why) return toast(why);
+  picks = P.map(p => p.id); sel.clear(); selecting = false; outFilter = "All";
+  if (outSeason !== "Any" && !P.every(p => okTag(p, outSeason))) outSeason = "Any";
+  ideas = generate(6); genMsg = ideas.length ? "" : noPickIdeasMsg();
+  renderPickBar(); renderPieces(); show("outfits"); renderOutfits(); try { const t = $(".anchorbar"); if (t) t.scrollIntoView({ block: "center" }); else window.scrollTo({ top: 0 }); } catch (e) {}
+}
+/* press and hold a piece to start selecting (on a phone); the tap that ends the hold doesn't also open the piece */
+let lpTimer = null, lpStart = null, suppressClick = false;
+const lpCancel = () => { clearTimeout(lpTimer); lpTimer = null; };
+document.addEventListener("pointerdown", e => {
+  const card = e.target.closest && e.target.closest("#pieceList [data-piece]"); if (!card || e.button > 0) return;
+  lpStart = [e.clientX, e.clientY]; lpCancel();
+  lpTimer = setTimeout(() => {
+    lpTimer = null; suppressClick = true; selecting = true;
+    const id = card.dataset.piece; if (sel.has(id)) sel.delete(id); else sel.add(id);
+    try { navigator.vibrate && navigator.vibrate(15); } catch (err) {}
+    renderPieces(); renderPickBar();
+  }, 450);
+});
+document.addEventListener("pointermove", e => { if (lpTimer && lpStart && Math.hypot(e.clientX - lpStart[0], e.clientY - lpStart[1]) > 10) lpCancel(); });
+document.addEventListener("pointerup", () => { lpCancel(); if (suppressClick) setTimeout(() => { suppressClick = false; }, 450); });
+document.addEventListener("pointercancel", lpCancel);
+document.addEventListener("contextmenu", e => { if (e.target.closest && e.target.closest("#pieceList [data-piece]")) e.preventDefault(); });
+document.addEventListener("click", e => { if (suppressClick) { suppressClick = false; e.preventDefault(); e.stopPropagation(); } }, true);
 
 /* ---------- events ---------- */
 /* keep keyboard focus in a sensible place when parts of the page are redrawn */
@@ -2353,7 +2435,7 @@ async function onClick(e) {
   if (ds.act === "cancel-season") { pendingSeason = null; return renderPalette(); }
   if (ds.guide) { guide[ds.guide] = guide[ds.guide] === ds.val ? "" : ds.val; guide.open = true; return renderPalette(); }
   if (ds.act === "settings") return openSettings();
-  if (ds.act === "start-over") { closeSheet(); anchorId = null; ideas = []; return withUndo("Everything was cleared", () => { state = cleanState({ tagMode: state.tagMode, showLabels: state.showLabels }); }); }
+  if (ds.act === "start-over") { closeSheet(); picks = []; sel.clear(); selecting = false; ideas = []; return withUndo("Everything was cleared", () => { state = cleanState({ tagMode: state.tagMode, showLabels: state.showLabels }); }); }
   if (ds.act === "toggle-boldmix") { state.boldMix = !state.boldMix; ideas = []; shownIdeas = new Set(); genMsg = ""; save(); renderOutfits(); return openSettings(); }
   if (ds.act === "toggle-labels") { state.showLabels = state.showLabels === false; save(); renderOutfits(); return openSettings(); }
   if (ds.act === "export") return exportData();
@@ -2361,7 +2443,7 @@ async function onClick(e) {
   // pieces
   if (ds.act === "new-piece") return openPieceEditor(null);
   if (ds.act === "open-types") { readDraftInputs(); typeOpen = true; return renderSheet(); }
-  if (ds.piece) return openPieceEditor(ds.piece);
+  if (ds.piece) { if (selecting) return toggleSel(ds.piece); return openPieceEditor(ds.piece); }
   if (ds.pcat) { pieceCat = ds.pcat; return renderPieces(); }
   if (ds.closet) { closetFilter = ds.closet; return renderPieces(); }
   if (ds.own !== undefined) { readDraftInputs(); draft.owned = ds.own === "1"; return renderSheet(); }
@@ -2394,7 +2476,7 @@ async function onClick(e) {
     return withUndo("Piece deleted", () => {
       state.pieces = state.pieces.filter(p => p.id !== id);
       state.outfits = state.outfits.map(o => ({ ...o, items: o.items.filter(x => x !== id) })).filter(o => o.items.length >= 2);
-      ideas = ideas.filter(o => !o.items.includes(id)); if (anchorId === id) anchorId = null;
+      ideas = ideas.filter(o => !o.items.includes(id)); picks = picks.filter(x => x !== id); sel.delete(id);
     });
   }
   if (ds.act === "duplicate") { readDraftInputs(); draft = { ...JSON.parse(JSON.stringify(draft)), id: null, name: draft.name + " (copy)", nameTouched: true }; typeOpen = false; renderSheet(); const n = $("#pieceName"); if (n) { n.focus(); n.select(); } return toast("Editing a copy. Change what's different, then add it."); }
@@ -2415,17 +2497,21 @@ async function onClick(e) {
   if (ds.stylePalette) { const id = ds.stylePalette, st = STYLE[id]; closeSheet(); return withUndo(`${st.name} palette set`, () => { state.palette = st.palette.map(([name, hex, role]) => ({ id: uidGen(), name, hex, role })); state.styleId = id; }); }
   if (ds.styleAdd) { const id = ds.styleAdd, st = STYLE[id], pcs = stylePieces(st, ds.owned === "1"); closeSheet(); show("pieces"); return withUndo(`${pcs.length} ${st.name} pieces added${ds.owned === "1" ? "" : " to your wishlist"}`, () => { state.pieces.push(...pcs); if (!state.palette.length) { state.palette = st.palette.map(([name, hex, role]) => ({ id: uidGen(), name, hex, role })); } state.styleId ||= id; }); }
   if (ds.act === "anchor") {
-    const id = draft.id; closeSheet(); anchorId = id; outFilter = "All"; ideas = [];
+    const id = draft.id; closeSheet(); picks = [id]; outFilter = "All"; ideas = [];
     ideas = generate(6);
     genMsg = ideas.length ? "" : "No combinations found with this piece and these filters. Try Any season or turn off Comfy day or Only what I own.";
     show("outfits"); renderOutfits(); try { window.scrollTo({ top: 0 }); } catch (e) {} return;
   }
-  if (ds.act === "clear-anchor") { anchorId = null; ideas = []; genMsg = ""; return renderOutfits(); }
+  if (ds.act === "clear-anchor") { picks = []; ideas = []; genMsg = ""; return renderOutfits(); }
+  if (ds.unpick) { picks = picks.filter(x => x !== ds.unpick); ideas = picks.length ? generate(6) : []; genMsg = picks.length && !ideas.length ? noPickIdeasMsg() : ""; return renderOutfits(); }
+  if (ds.act === "make-picks") return makeFromSelection();
+  if (ds.act === "clear-sel") { sel.clear(); selecting = false; renderPickBar(); return renderPieces(); }
+  if (ds.act === "select-mode") { selecting = !selecting; if (!selecting) sel.clear(); renderPickBar(); return renderPieces(); }
   if (ds.starter) return addStarter(ds.starter, ds.owned === "1");
   if (ds.act === "generate") {
     let got = generate(6);
     /* once everything has been shown, start the rotation over instead of coming up empty */
-    if (got.length < 6 && shownIdeas.size > got.length) { shownIdeas = new Set(got.map(o => clothesKey(o.items, anchorPiece()))); got = [...got, ...generate(6 - got.length)]; }
+    if (got.length < 6 && shownIdeas.size > got.length) { shownIdeas = new Set(got.map(o => clothesKey(o.items, pickedPieces()))); got = [...got, ...generate(6 - got.length)]; }
     ideas = got.length ? got : ideas;
     genMsg = !got.length ? "No new combinations found with these settings. Try a different filter, turn off Comfy day or Only what I own, or add more pieces."
       : got.length < 4 && outOcc !== "Any" ? `Only a few combinations work for ${lc(outOcc)} with these pieces. Tagging more pieces for ${lc(outOcc)} (in each piece's Occasions) gives more ideas.` : "";
